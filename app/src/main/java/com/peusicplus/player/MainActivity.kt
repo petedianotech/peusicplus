@@ -38,7 +38,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var trackList: RecyclerView
     private lateinit var searchInput: EditText
     private lateinit var titleText: TextView
-
     private lateinit var artistText: TextView
     private lateinit var currentTimeText: TextView
     private lateinit var durationText: TextView
@@ -114,6 +113,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ThemeManager.apply(this)
         setContentView(R.layout.activity_main)
 
         titleText = findViewById(R.id.trackTitle)
@@ -139,6 +139,11 @@ class MainActivity : AppCompatActivity() {
         trackList.adapter = trackAdapter
 
         titleText.setOnClickListener { openNowPlaying() }
+
+        findViewById<TextView>(R.id.appTitle).setOnLongClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+            true
+        }
 
         playButton.setOnClickListener {
             mediaController?.let { controller ->
@@ -172,10 +177,6 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<ImageButton>(R.id.queueButton).setOnClickListener {
             startActivity(Intent(this, QueueActivity::class.java))
-        }
-
-        findViewById<ImageButton>(R.id.settingsButton).setOnClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java))
         }
 
         findViewById<ImageButton>(R.id.sortButton).setOnClickListener { showSortMenu() }
