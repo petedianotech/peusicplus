@@ -10,9 +10,6 @@ object AudioSettings {
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    var equalizerEnabled: Boolean
-        get() = false
-
     fun isEnabled(context: Context): Boolean =
         prefs(context).getBoolean("eq_enabled", true)
 

@@ -1,7 +1,8 @@
 package com.peusicplus.player
 
+import android.Manifest
 import android.content.ComponentName
-import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Bundle
@@ -11,6 +12,7 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -18,7 +20,6 @@ import androidx.core.content.ContextCompat
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import coil.load
-import com.google.android.material.appbar.MaterialToolbar
 
 class NowPlayingActivity : AppCompatActivity() {
 
@@ -27,10 +28,16 @@ class NowPlayingActivity : AppCompatActivity() {
     private var lyricLines: List<LyricsParser.LyricLine> = emptyList()
 
     private lateinit var artwork: ImageView
+    private lateinit var visualizerView: VisualizerView
     private lateinit var titleText: TextView
     private lateinit var artistText: TextView
     private lateinit var lyricsText: TextView
-    private lateinit var codecText: TextView
+
+    private val visualizerPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) startVisualizer()
+    }
 
     private val artworkPicker = registerForActivityResult(
         ActivityResultContracts.PickVisualMedia()
@@ -62,13 +69,14 @@ class NowPlayingActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ThemeManager.apply(this)
         setContentView(R.layout.activity_now_playing)
 
         artwork = findViewById(R.id.nowPlayingArtwork)
+        visualizerView = findViewById(R.id.visualizerView)
         titleText = findViewById(R.id.nowPlayingTitle)
         artistText = findViewById(R.id.nowPlayingArtist)
         lyricsText = findViewById(R.id.lyricsText)
-        codecText = findViewById(R.id.codecText)
 
         val gestureDetector = GestureDetector(
             this,
@@ -101,16 +109,35 @@ class NowPlayingActivity : AppCompatActivity() {
         findViewById<Button>(R.id.editLyricsButton).setOnClickListener { showLyricsEditor() }
         findViewById<Button>(R.id.changeArtworkButton).setOnClickListener {
             artworkPicker.launch(
-                androidx.activity.result.PickVisualMediaRequest(
-                    ActivityResultContracts.PickVisualMedia.ImageOnly
-                )
+                PickVisualMediaRequest.Builder()
+                    .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    .build()
             )
         }
 
         findViewById<Button>(R.id.codecInfoButton).setOnClickListener { showCodecInfo() }
 
+        ensureVisualizerPermission()
         connect()
         handler.post(lyricRunnable)
+    }
+
+    private fun ensureVisualizerPermission() {
+        if (
+            ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            startVisualizer()
+        } else {
+            visualizerPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    private fun startVisualizer() {
+        val sessionId = PlaybackService.currentAudioSessionId
+        if (sessionId != 0 && ThemeManager.isVisualizerEnabled(this)) {
+            visualizerView.start(sessionId)
+        }
     }
 
     private fun connect() {
@@ -119,11 +146,15 @@ class NowPlayingActivity : AppCompatActivity() {
         future.addListener({
             mediaController = future.get()
             mediaController?.addListener(object : androidx.media3.common.Player.Listener {
-                override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+                override fun onMediaItemTransition(
+                    mediaItem: androidx.media3.common.MediaItem?,
+                    reason: Int
+                ) {
                     loadCurrentTrack()
                 }
             })
             loadCurrentTrack()
+            startVisualizer()
         }, ContextCompat.getMainExecutor(this))
     }
 
@@ -198,15 +229,17 @@ class NowPlayingActivity : AppCompatActivity() {
     }
 
     private fun applyToAlbum(track: Track, artist: String, album: String) {
-        MusicLibraryRepository.tracksForAlbum(MusicLibraryRepository.loadTracks(this), track.albumId)
-            .forEach { albumTrack ->
-                val existing = MetadataOverrides.get(this, albumTrack.id.toString())
-                MetadataOverrides.save(
-                    this,
-                    albumTrack.id.toString(),
-                    existing.copy(artist = artist, album = album)
-                )
-            }
+        MusicLibraryRepository.tracksForAlbum(
+            MusicLibraryRepository.loadTracks(this),
+            track.albumId
+        ).forEach { albumTrack ->
+            val existing = MetadataOverrides.get(this, albumTrack.id.toString())
+            MetadataOverrides.save(
+                this,
+                albumTrack.id.toString(),
+                existing.copy(artist = artist, album = album)
+            )
+        }
 
         Toast.makeText(this, R.string.batch_metadata_applied, Toast.LENGTH_SHORT).show()
         loadCurrentTrack()
@@ -241,13 +274,27 @@ class NowPlayingActivity : AppCompatActivity() {
             retriever.setDataSource(this, track.uri)
             val info = buildString {
                 append("MIME: ")
-                appendLine(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE) ?: "Unknown")
+                appendLine(
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE)
+                        ?: "Unknown"
+                )
                 append("Bitrate: ")
-                appendLine(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE) ?: "Unknown")
+                appendLine(
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)
+                        ?: "Unknown"
+                )
                 append("Duration: ")
-                appendLine(formatTime(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0))
+                appendLine(
+                    formatTime(
+                        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                            ?.toLongOrNull() ?: 0
+                    )
+                )
                 append("Title: ")
-                appendLine(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE) ?: "Unknown")
+                appendLine(
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+                        ?: "Unknown"
+                )
             }
 
             AlertDialog.Builder(this)
@@ -268,6 +315,7 @@ class NowPlayingActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         handler.removeCallbacks(lyricRunnable)
+        visualizerView.stop()
         mediaController?.release()
         mediaController = null
         super.onDestroy()

@@ -11,8 +11,12 @@ android {
         applicationId = "com.peusicplus.player"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.3.0"
+        versionCode = 5
+        versionName = "1.3.1"
+    }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
     }
 
     buildTypes {
@@ -49,6 +53,7 @@ dependencies {
     implementation("androidx.media3:media3-common:1.5.1")
 
     implementation("io.coil-kt:coil:2.7.0")
+    implementation("com.google.guava:guava:33.3.1-android")
 
     testImplementation("junit:junit:4.13.2")
 }

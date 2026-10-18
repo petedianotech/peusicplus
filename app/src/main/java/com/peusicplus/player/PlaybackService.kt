@@ -4,9 +4,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import androidx.core.content.ContextCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -37,7 +39,7 @@ class PlaybackService : MediaSessionService() {
             val player = mediaSession?.player ?: return
             val crossfadeMs = AudioSettings.getCrossfadeSeconds(this@PlaybackService) * 1000L
 
-            if (crossfadeMs > 0 && player.isPlaying) {
+            if (crossfadeMs > 0 && player.isPlaying && player.duration != C.TIME_UNSET) {
                 val remaining = player.duration - player.currentPosition
                 if (remaining in 1 until crossfadeMs) {
                     player.volume = (remaining.toFloat() / crossfadeMs).coerceIn(0f, 1f)
@@ -111,9 +113,11 @@ class PlaybackService : MediaSessionService() {
 
         applyAudioSettings()
 
-        registerReceiver(
+        ContextCompat.registerReceiver(
+            this,
             settingsReceiver,
-            IntentFilter(ACTION_AUDIO_SETTINGS_CHANGED)
+            IntentFilter(ACTION_AUDIO_SETTINGS_CHANGED),
+            ContextCompat.RECEIVER_NOT_EXPORTED
         )
 
         handler.post(crossfadeRunnable)
@@ -122,6 +126,7 @@ class PlaybackService : MediaSessionService() {
     private fun applyAudioSettings() {
         val player = mediaSession?.player ?: return
 
+        currentAudioSessionId = player.audioSessionId
         AudioEffectsManager.apply(this, player.audioSessionId)
 
         player.playbackParameters = PlaybackParameters(
@@ -159,6 +164,7 @@ class PlaybackService : MediaSessionService() {
             release()
         }
         mediaSession = null
+        currentAudioSessionId = 0
         super.onDestroy()
     }
 
@@ -166,6 +172,10 @@ class PlaybackService : MediaSessionService() {
         const val ACTION_AUDIO_SETTINGS_CHANGED = "com.peusicplus.player.AUDIO_SETTINGS_CHANGED"
         const val ACTION_START_SLEEP_TIMER = "com.peusicplus.player.START_SLEEP_TIMER"
         const val ACTION_CANCEL_SLEEP_TIMER = "com.peusicplus.player.CANCEL_SLEEP_TIMER"
+
+        @Volatile
+        var currentAudioSessionId: Int = 0
+            private set
 
         fun createMediaItem(context: Context, track: Track): MediaItem {
             val overridden = MetadataOverrides.applyToTrack(context, track)

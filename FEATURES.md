@@ -27,6 +27,7 @@ This roadmap guides development of PeusicPlus as a powerful, offline-first Andro
 - ✅ Shuffle and repeat modes
 - ✅ Songs, albums, artists, and folders library tabs
 - ✅ Album artwork loading from MediaStore
+- ✅ Adaptive launcher icon resources
 - ✅ GitHub Actions workflow that builds an installable debug APK on every push
 
 ## Phase 2 — Library, queue, and playlists
@@ -70,6 +71,7 @@ This roadmap guides development of PeusicPlus as a powerful, offline-first Andro
 - ✅ Accent-color preference used by the visualizer
 - ✅ Waveform visualizer attached to active playback
 - ✅ Visualizer enable/disable setting
+- ✅ RECORD_AUDIO runtime permission request for visualizer operation
 - ✅ Home-screen widget with one-tap access to the player
 - ✅ Android Auto compatibility through the foreground Media3 media session
 - ✅ Unit tests for synchronized-lyrics parsing and M3U parsing
@@ -78,6 +80,16 @@ This roadmap guides development of PeusicPlus as a powerful, offline-first Andro
 - ✅ Settings backup and restore via Android file picker
 - ✅ Manual GitHub Actions workflow for an unsigned release APK
 - ✅ Debug APK workflow retained for installable builds on every push
+
+## Build reliability fixes
+
+- ✅ Removed invalid getter-only `var equalizerEnabled` property that prevented Kotlin compilation
+- ✅ Added missing adaptive launcher icon resources required by `@mipmap/ic_launcher`
+- ✅ Added explicit Guava dependency for Media3 `ListenableFuture` APIs
+- ✅ Fixed `PickVisualMediaRequest` construction for the Android photo picker
+- ✅ Registered the settings broadcast receiver with `RECEIVER_NOT_EXPORTED` for Android 14 compatibility
+- ✅ Enabled default-value stubs for local unit tests
+- ✅ Added safe handling for unavailable media duration during crossfade
 
 ## Release readiness
 
@@ -92,4 +104,4 @@ This roadmap guides development of PeusicPlus as a powerful, offline-first Andro
 
 ## Current milestone
 
-**Phase 5 complete.** PeusicPlus now includes themes, a waveform visualizer, a home-screen widget, Android Auto compatibility through its media session, unit tests, settings backup/restore, a privacy policy, and both debug and release CI workflows. Remaining release work is signing with repository secrets, broader UI tests, and store listing assets.
+**Build blockers fixed and Phase 5 complete.** The project now includes launcher icons, working visualizer permission flow, Android 14-safe receiver registration, valid photo-picker integration, Guava support for Media3 callbacks, and stable debug/release CI workflows.
