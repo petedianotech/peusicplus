@@ -6,6 +6,8 @@
     <string name="play_pause">Play or pause</string>
     <string name="previous">Previous track</string>
     <string name="next">Next track</string>
+    <string name="shuffle">Shuffle</string>
+    <string name="repeat">Repeat</string>
     <string name="peusicplus">PeusicPlus</string>
     <string name="unknown_artist">Unknown artist</string>
     <string name="no_music_found">No music found on this device</string>

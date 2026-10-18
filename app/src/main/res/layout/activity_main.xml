@@ -70,13 +70,45 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
     <LinearLayout
-        android:id="@+id/controls"
+        android:id="@+id/secondaryControls"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="10dp"
         android:gravity="center"
         android:orientation="horizontal"
         app:layout_constraintTop_toBottomOf="@id/currentTime"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageButton
+            android:id="@+id/shuffleButton"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:alpha="0.55"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/shuffle"
+            android:src="@drawable/ic_shuffle" />
+
+        <ImageButton
+            android:id="@+id/repeatButton"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="28dp"
+            android:alpha="0.55"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/repeat"
+            android:src="@drawable/ic_repeat" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/controls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@id/secondaryControls"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
@@ -112,7 +144,7 @@
         android:id="@+id/playlistTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="28dp"
+        android:layout_marginTop="24dp"
         android:text="@string/playlist"
         android:textAllCaps="true"
         android:textColor="@color/text_secondary"

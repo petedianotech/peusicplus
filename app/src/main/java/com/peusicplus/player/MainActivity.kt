@@ -31,9 +31,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var durationText: TextView
     private lateinit var seekBar: SeekBar
     private lateinit var playButton: ImageButton
+    private lateinit var shuffleButton: ImageButton
+    private lateinit var repeatButton: ImageButton
 
     private var mediaController: MediaController? = null
     private var tracks: List<Track> = emptyList()
+    private var queueLoaded = false
     private val handler = Handler(Looper.getMainLooper())
 
     private val audioPermissionLauncher = registerForActivityResult(
@@ -56,9 +59,15 @@ class MainActivity : AppCompatActivity() {
                 if (controller.isPlaying) {
                     seekBar.progress = controller.currentPosition.toInt()
                     currentTimeText.text = formatTime(controller.currentPosition)
+
+                    val index = controller.currentMediaItemIndex
+                    val positionMs = controller.currentPosition
+                    if (tracks.isNotEmpty() && index in tracks.indices) {
+                        QueuePersistence.save(this@MainActivity, tracks, index, positionMs)
+                    }
                 }
             }
-            handler.postDelayed(this, 500)
+            handler.postDelayed(this, 1000)
         }
     }
 
@@ -78,6 +87,14 @@ class MainActivity : AppCompatActivity() {
                 updateNowPlaying()
             }
         }
+
+        override fun onShuffleModeEnabledChanged(enabled: Boolean) {
+            shuffleButton.alpha = if (enabled) 1f else 0.55f
+        }
+
+        override fun onRepeatModeChanged(repeatMode: Int) {
+            repeatButton.alpha = if (repeatMode == Player.REPEAT_MODE_OFF) 0.55f else 1f
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,6 +107,8 @@ class MainActivity : AppCompatActivity() {
         durationText = findViewById(R.id.duration)
         seekBar = findViewById(R.id.seekBar)
         playButton = findViewById(R.id.playButton)
+        shuffleButton = findViewById(R.id.shuffleButton)
+        repeatButton = findViewById(R.id.repeatButton)
 
         trackAdapter = TrackAdapter { position ->
             playFromLibrary(position)
@@ -111,6 +130,22 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<ImageButton>(R.id.nextButton).setOnClickListener {
             mediaController?.seekToNextMediaItem()
+        }
+
+        shuffleButton.setOnClickListener {
+            mediaController?.let { controller ->
+                controller.shuffleModeEnabled = !controller.shuffleModeEnabled
+            }
+        }
+
+        repeatButton.setOnClickListener {
+            mediaController?.let { controller ->
+                controller.repeatMode = when (controller.repeatMode) {
+                    Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                    Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                    else -> Player.REPEAT_MODE_OFF
+                }
+            }
         }
 
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -164,7 +199,10 @@ class MainActivity : AppCompatActivity() {
         val future = MediaController.Builder(this, sessionToken).buildAsync()
         future.addListener({
             mediaController = future.get()
-            mediaController?.addListener(playerListener)
+            mediaController?.let { controller ->
+                controller.addListener(playerListener)
+                restoreSavedQueue(controller)
+            }
             updateNowPlaying()
         }, ContextCompat.getMainExecutor(this))
     }
@@ -179,10 +217,30 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun restoreSavedQueue(controller: MediaController) {
+        if (queueLoaded || controller.mediaItemCount > 0) return
+
+        val saved = QueuePersistence.load(this) ?: return
+        if (saved.tracks.isEmpty()) return
+
+        queueLoaded = true
+        tracks = saved.tracks
+        trackAdapter.submitTracks(tracks)
+
+        val mediaItems = tracks.map(PlaybackService::createMediaItem)
+        controller.setMediaItems(
+            mediaItems,
+            saved.index.coerceIn(0, tracks.lastIndex),
+            saved.positionMs
+        )
+        controller.prepare()
+    }
+
     private fun playFromLibrary(position: Int) {
         val controller = mediaController ?: return
         if (tracks.isEmpty()) return
 
+        queueLoaded = true
         val mediaItems = tracks.map(PlaybackService::createMediaItem)
         controller.setMediaItems(mediaItems, position, 0L)
         controller.prepare()
@@ -212,6 +270,8 @@ class MainActivity : AppCompatActivity() {
         playButton.setImageResource(
             if (controller.isPlaying) R.drawable.ic_pause else R.drawable.ic_play
         )
+        shuffleButton.alpha = if (controller.shuffleModeEnabled) 1f else 0.55f
+        repeatButton.alpha = if (controller.repeatMode == Player.REPEAT_MODE_OFF) 0.55f else 1f
 
         val position = tracks.indexOfFirst { it.id.toString() == current.mediaId }
         if (position >= 0) {

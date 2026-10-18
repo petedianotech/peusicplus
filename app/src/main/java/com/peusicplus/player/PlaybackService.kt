@@ -1,5 +1,7 @@
 package com.peusicplus.player
 
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.exoplayer.ExoPlayer
@@ -17,11 +19,18 @@ class PlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
 
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+            .build()
+
         val player = ExoPlayer.Builder(this)
             .setSeekBackIncrementMs(10_000)
             .setSeekForwardIncrementMs(10_000)
             .build()
 
+        player.setAudioAttributes(audioAttributes, /* handleAudioFocus = */ true)
+        player.setHandleAudioBecomingNoisy(true)
         player.repeatMode = ExoPlayer.REPEAT_MODE_ALL
 
         mediaSession = MediaSession.Builder(this, player)

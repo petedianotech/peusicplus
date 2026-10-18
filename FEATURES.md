@@ -33,10 +33,11 @@ Poweramp contributes the advanced audio-engine, equalizer/DSP, hi-res, visualiza
 - ✅ Persistent player owned by the service rather than the Activity
 - ✅ Queue-based playback using Media3 media items
 - ✅ Track transitions and now-playing state updates
-- [ ] Audio-focus handling and pause-on-call behavior
-- [ ] Becoming-noisy handling for headphone disconnection
-- [ ] Persistent queue across app restarts
-- [ ] Shuffle and repeat: off, repeat one, repeat all
+- ✅ Audio-focus handling and pause-on-call behavior
+- ✅ Becoming-noisy handling for headphone disconnection
+- ✅ Persistent queue and playback position across app restarts
+- ✅ Shuffle toggle
+- ✅ Repeat modes: off, repeat all, and repeat one
 - [ ] Gapless playback configuration
 - [ ] Crossfade with configurable duration
 - [ ] Playback speed and pitch controls
@@ -118,4 +119,4 @@ Poweramp contributes the advanced audio-engine, equalizer/DSP, hi-res, visualiza
 
 ## Current milestone
 
-**Production playback engine started.** PeusicPlus now scans the local MediaStore, presents the device library, and plays a queue through Media3 ExoPlayer in a foreground media session. The service enables background playback and system media controls; the next milestone adds audio-focus, headphone-disconnect handling, and persistent queue state.
+**Playback reliability complete.** PeusicPlus now handles audio focus, pauses when headphones disconnect, restores the last queue and position, and supports shuffle plus off/all/one repeat modes. The next milestone is library navigation: songs, albums, artists, folders, search, sorting, and album artwork.
