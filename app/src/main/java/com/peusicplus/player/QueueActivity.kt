@@ -1,17 +1,17 @@
 package com.peusicplus.player
 
+import android.content.ComponentName
 import android.os.Bundle
-import android.view.View
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.media3.common.MediaItem
+import androidx.core.content.ContextCompat
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import android.content.ComponentName
 
 class QueueActivity : AppCompatActivity() {
 
@@ -24,7 +24,10 @@ class QueueActivity : AppCompatActivity() {
 
         queueAdapter = QueueAdapter(
             onPlay = { position -> mediaController?.seekTo(position, 0) },
-            onRemove = { position -> mediaController?.removeMediaItem(position) },
+            onRemove = { position ->
+                mediaController?.removeMediaItem(position)
+                refreshQueue()
+            },
             onMoveUp = { position -> moveItem(position, position - 1) },
             onMoveDown = { position -> moveItem(position, position + 1) }
         )
@@ -37,10 +40,8 @@ class QueueActivity : AppCompatActivity() {
         findViewById<ImageButton>(R.id.saveQueueButton).setOnClickListener { saveCurrentQueue() }
         findViewById<ImageButton>(R.id.loadQueueButton).setOnClickListener { showSavedQueues() }
         findViewById<ImageButton>(R.id.clearQueueButton).setOnClickListener {
-            mediaController?.let { controller ->
-                controller.clearMediaItems()
-                refreshQueue()
-            }
+            mediaController?.clearMediaItems()
+            refreshQueue()
         }
 
         connect()
@@ -52,7 +53,7 @@ class QueueActivity : AppCompatActivity() {
         future.addListener({
             mediaController = future.get()
             refreshQueue()
-        }, androidx.core.content.ContextCompat.getMainExecutor(this))
+        }, ContextCompat.getMainExecutor(this))
     }
 
     private fun moveItem(from: Int, to: Int) {
@@ -83,18 +84,15 @@ class QueueActivity : AppCompatActivity() {
         }
 
         val name = "Queue ${System.currentTimeMillis()}"
+        val library = MusicLibraryRepository.loadTracks(this)
+
         val tracks = (0 until controller.mediaItemCount).mapNotNull { index ->
-            val item = controller.getMediaItemAt(index)
-            val id = item.mediaId.toLongOrNull() ?: return@mapNotNull null
-            allTracks().firstOrNull { it.id == id }
+            val id = controller.getMediaItemAt(index).mediaId.toLongOrNull()
+            library.firstOrNull { it.id == id }
         }
 
         PlaybackPreferences.saveQueue(this, name, tracks)
         Toast.makeText(this, R.string.queue_saved, Toast.LENGTH_SHORT).show()
-    }
-
-    private fun allTracks(): List<Track> {
-        return MusicLibraryRepository.loadTracks(this)
     }
 
     private fun showSavedQueues() {
@@ -105,19 +103,19 @@ class QueueActivity : AppCompatActivity() {
         }
 
         val names = queues.toTypedArray()
-        androidx.appcompat.app.AlertDialog.Builder(this)
+        AlertDialog.Builder(this)
             .setTitle(R.string.saved_queues)
             .setItems(names) { _, which ->
                 val tracks = PlaybackPreferences.getSavedQueue(this, names[which])
                 mediaController?.let { controller ->
-                    controller.setMediaItems(tracks.map(PlaybackService::createMediaItem))
+                    controller.setMediaItems(tracks.map { PlaybackService.createMediaItem(this, it) })
                     controller.prepare()
                     controller.play()
                     refreshQueue()
                 }
             }
             .setNeutralButton(R.string.delete) { _, _ ->
-                androidx.appcompat.app.AlertDialog.Builder(this)
+                AlertDialog.Builder(this)
                     .setTitle(R.string.delete_queue)
                     .setItems(names) { _, which ->
                         PlaybackPreferences.deleteSavedQueue(this, names[which])

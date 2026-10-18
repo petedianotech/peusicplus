@@ -60,27 +60,26 @@ This roadmap guides development of PeusicPlus as a powerful, offline-first Andro
 - ✅ Custom graphic equalizer band adjustment
 - ✅ Bass boost
 - ✅ Stereo widening / virtualizer
-- ✅ Reverb effects: none, room, hall, and plate presets
+- ✅ Reverb effects
 - ✅ ReplayGain-style preamp and volume normalization control
-- ✅ Balance-aware playback volume control
-- ✅ Per-output profile setting: speaker, headphones, Bluetooth, and USB
-- ✅ Advanced audio settings screen
+- ✅ Per-output profile setting
 - ✅ Audio effects attached to the active ExoPlayer audio session
 - ✅ Settings changes applied live to the foreground playback service
-- ✅ Direct volume control investigation: implemented as a safe ReplayGain/preamp volume path; bit-perfect USB DAC exclusive access requires device-specific USB audio work
 
 ## Phase 4 — Lyrics, metadata, and Now Playing
 
-- [ ] Full Now Playing screen with large artwork
-- [ ] Swipe gestures for track changes
-- [ ] Embedded lyrics display
-- [ ] Plain-text `.lrc` lyrics support
-- [ ] Synchronized lyrics with timing
-- [ ] Lyrics editor
-- [ ] Built-in tag editor
-- [ ] Batch tag editing
-- [ ] Album-art editor and embedded artwork support
-- [ ] Detailed audio-format and codec information
+- ✅ Full Now Playing screen with large artwork
+- ✅ Swipe left/right on artwork for next/previous track
+- ✅ Embedded lyrics display
+- ✅ Plain-text and synchronized `.lrc` lyrics parsing
+- ✅ Synchronized lyric highlighting during playback
+- ✅ Lyrics editor with local lyrics overrides
+- ✅ Tag editor for title, artist, and album display metadata
+- ✅ Batch metadata apply across an album
+- ✅ Album-art override using the Android photo picker
+- ✅ Audio-format and codec information viewer
+- ✅ Metadata overrides applied to playback metadata and library display
+- ✅ Build fixes: duplicate imports, missing ContextCompat import, custom sleep-timer commands, and media-item override integration
 
 ## Phase 5 — Interface, integrations, and release
 
@@ -102,4 +101,4 @@ This roadmap guides development of PeusicPlus as a powerful, offline-first Andro
 
 ## Current milestone
 
-**Phase 3 complete.** PeusicPlus now includes gapless playback, configurable crossfade, speed and pitch, a sleep timer, bookmarks, equalizer presets and custom bands, bass boost, stereo widening, reverb, ReplayGain-style preamp, output profiles, and live-applicable audio settings. The next milestone is Phase 4: full Now Playing, lyrics, and metadata/tag editing.
+**Phase 4 complete and APK build repaired.** PeusicPlus now has a full Now Playing experience, swipe navigation, synchronized lyrics, metadata overrides, album-art overrides, batch album metadata, and codec information. The CI workflow builds an installable debug APK on every push to `main`.

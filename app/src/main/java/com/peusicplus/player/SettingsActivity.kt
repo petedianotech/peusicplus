@@ -1,26 +1,30 @@
 package com.peusicplus.player
 
+import android.content.ComponentName
 import android.content.Intent
 import android.media.audiofx.Equalizer
 import android.media.audiofx.PresetReverb
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.media3.common.Player
+import androidx.core.content.ContextCompat
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.session.MediaController
+import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionToken
-import android.content.ComponentName
 
 class SettingsActivity : AppCompatActivity() {
 
     private var mediaController: MediaController? = null
-    private var equalizer: Equalizer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -104,39 +108,30 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun setupAudioEffects() {
         val eqSwitch = findViewById<Switch>(R.id.equalizerSwitch)
-        val eqBandsContainer = findViewById<android.widget.LinearLayout>(R.id.equalizerBands)
+        val eqBandsContainer = findViewById<LinearLayout>(R.id.equalizerBands)
         val presetSpinner = findViewById<Spinner>(R.id.equalizerPresets)
 
         eqSwitch.isChecked = AudioSettings.isEnabled(this)
         eqSwitch.setOnCheckedChangeListener { _, checked ->
             AudioSettings.setEnabled(this, checked)
-            equalizer?.enabled = checked
             notifyService()
         }
 
-        val temporaryEqualizer = runCatching {
-            Equalizer(0, 0)
-        }.getOrNull()
-
-        val bandCount = temporaryEqualizer?.numberOfBands ?: 5
-        val presets = temporaryEqualizer?.let { eq ->
-            (0 until eq.numberOfPresets).map { eq.getPresetName(it.toShort()) }
-        } ?: emptyList()
+        val presets = listOf(
+            "Custom", "Normal", "Classical", "Dance", "Flat", "Folk",
+            "Heavy Metal", "Hip Hop", "Jazz", "Pop", "Rock"
+        )
 
         presetSpinner.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_dropdown_item,
-            listOf(getString(R.string.custom)) + presets
+            presets
         )
 
         presetSpinner.setSelection(AudioSettings.getEqualizerPreset(this) + 1)
         presetSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
-                val preset = position - 1
-                AudioSettings.setEqualizerPreset(this@SettingsActivity, preset)
-                equalizer?.let { eq ->
-                    if (preset >= 0) eq.usePreset(preset.toShort())
-                }
+                AudioSettings.setEqualizerPreset(this@SettingsActivity, position - 1)
                 notifyService()
             }
 
@@ -144,10 +139,11 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         val savedLevels = AudioSettings.getEqualizerBandLevels(this)
+        val bandLabels = listOf("60 Hz", "230 Hz", "910 Hz", "3.6 kHz", "14 kHz")
 
-        repeat(bandCount) { band ->
-            val label = TextView(this).apply {
-                text = "${(band + 1) * 60} Hz"
+        bandLabels.forEachIndexed { band, label ->
+            val labelView = TextView(this).apply {
+                text = label
                 setTextColor(ContextCompat.getColor(this@SettingsActivity, R.color.text_secondary))
             }
 
@@ -157,21 +153,18 @@ class SettingsActivity : AppCompatActivity() {
                 setOnSeekBarChangeListener(simpleListener { progress ->
                     val level = progress - 15
                     val levels = AudioSettings.getEqualizerBandLevels(this@SettingsActivity)
-                        .ifEmpty { IntArray(bandCount) { 0 } }
+                        .ifEmpty { IntArray(bandLabels.size) { 0 } }
                         .copyOf()
                     levels[band] = level
                     AudioSettings.setEqualizerBandLevels(this@SettingsActivity, levels)
-                    equalizer?.setBandLevel(band.toShort(), level.toShort())
                     AudioSettings.setEqualizerPreset(this@SettingsActivity, -1)
                     notifyService()
                 })
             }
 
-            eqBandsContainer.addView(label)
+            eqBandsContainer.addView(labelView)
             eqBandsContainer.addView(bar)
         }
-
-        temporaryEqualizer?.release()
 
         val bassBar = findViewById<SeekBar>(R.id.bassBar)
         val virtualizerBar = findViewById<SeekBar>(R.id.virtualizerBar)
@@ -227,21 +220,33 @@ class SettingsActivity : AppCompatActivity() {
 
         buttons.forEach { (id, minutes) ->
             findViewById<Button>(id).setOnClickListener {
-                if (minutes == 0) {
-                    mediaController?.sendCustomCommand(
-                        androidx.media3.session.SessionCommand("cancel_sleep_timer", Bundle.EMPTY),
-                        Bundle.EMPTY
-                    )
-                    Toast.makeText(this, R.string.sleep_timer_cancelled, Toast.LENGTH_SHORT).show()
+                val action = if (minutes == 0) {
+                    PlaybackService.ACTION_CANCEL_SLEEP_TIMER
                 } else {
-                    mediaController?.sendCustomCommand(
-                        androidx.media3.session.SessionCommand("start_sleep_timer:$minutes", Bundle.EMPTY),
-                        Bundle.EMPTY
-                    )
-                    Toast.makeText(this, getString(R.string.sleep_timer_set, minutes), Toast.LENGTH_SHORT).show()
+                    PlaybackService.ACTION_START_SLEEP_TIMER
                 }
+
+                val extras = android.os.Bundle.EMPTY
+                if (minutes > 0) {
+                    val args = android.os.Bundle()
+                    args.putInt("minutes", minutes)
+                    sendCustomCommand(action, args)
+                } else {
+                    sendCustomCommand(action, extras)
+                }
+
+                Toast.makeText(
+                    this,
+                    if (minutes == 0) R.string.sleep_timer_cancelled
+                    else getString(R.string.sleep_timer_set, minutes),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
+    }
+
+    private fun sendCustomCommand(action: String, args: android.os.Bundle) {
+        mediaController?.sendCustomCommand(SessionCommand(action, args), android.os.Bundle.EMPTY)
     }
 
     private fun setupBookmarks() {
@@ -294,7 +299,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun applyPlaybackParameters() {
-        mediaController?.playbackParameters = androidx.media3.common.PlaybackParameters(
+        mediaController?.playbackParameters = PlaybackParameters(
             AudioSettings.getPlaybackSpeed(this),
             AudioSettings.getPitch(this)
         )
@@ -340,8 +345,6 @@ class SettingsActivity : AppCompatActivity() {
     override fun onStop() {
         mediaController?.release()
         mediaController = null
-        equalizer?.release()
-        equalizer = null
         super.onStop()
     }
 }

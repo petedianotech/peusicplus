@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="now_playing">Now Playing</string>
+    <string name="no_lyrics">No lyrics available</string>
+    <string name="tag_editor">Tag editor</string>
+    <string name="lyrics_editor">Lyrics editor</string>
+    <string name="change_artwork">Change artwork</string>
+    <string name="audio_format">Audio format</string>
+    <string name="title">Title</string>
+    <string name="artist">Artist</string>
+    <string name="album">Album</string>
+    <string name="apply_to_album">Apply artist/album to album</string>
+    <string name="batch_metadata_applied">Metadata applied to album</string>
+    <string name="codec_info_unavailable">Audio format information is unavailable</string>
+</resources>

@@ -37,8 +37,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var libraryAdapter: LibraryAdapter
     private lateinit var trackList: RecyclerView
     private lateinit var searchInput: EditText
-
     private lateinit var titleText: TextView
+
     private lateinit var artistText: TextView
     private lateinit var currentTimeText: TextView
     private lateinit var durationText: TextView
@@ -52,8 +52,6 @@ class MainActivity : AppCompatActivity() {
     private var allTracks: List<Track> = emptyList()
     private var visibleTracks: List<Track> = emptyList()
     private var currentMode = LibraryMode.SONGS
-    private var selectedGenreId: Long = -1
-    private var selectedPlaylist: String? = null
     private var queueLoaded = false
     private val handler = Handler(Looper.getMainLooper())
 
@@ -72,10 +70,6 @@ class MainActivity : AppCompatActivity() {
     private val importPlaylistLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let { importPlaylist(it) } }
-
-    private val exportPlaylistLauncher = registerForActivityResult(
-        ActivityResultContracts.CreateDocument("text/plain")
-    ) { uri -> uri?.let { exportPlaylist(it) } }
 
     private val progressRunnable = object : Runnable {
         override fun run() {
@@ -144,6 +138,8 @@ class MainActivity : AppCompatActivity() {
         trackList.layoutManager = LinearLayoutManager(this)
         trackList.adapter = trackAdapter
 
+        titleText.setOnClickListener { openNowPlaying() }
+
         playButton.setOnClickListener {
             mediaController?.let { controller ->
                 if (controller.isPlaying) controller.pause() else controller.play()
@@ -178,10 +174,17 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, QueueActivity::class.java))
         }
 
+        findViewById<ImageButton>(R.id.settingsButton).setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
         findViewById<ImageButton>(R.id.sortButton).setOnClickListener { showSortMenu() }
         findViewById<ImageButton>(R.id.importButton).setOnClickListener {
-            importPlaylistLauncher.launch(arrayOf("text/*", "audio/x-mpegurl", "application/vnd.apple.mpegurl"))
+            importPlaylistLauncher.launch(
+                arrayOf("text/*", "audio/x-mpegurl", "application/vnd.apple.mpegurl")
+            )
         }
+
         findViewById<ImageButton>(R.id.newPlaylistButton).setOnClickListener { createPlaylistDialog() }
 
         searchInput.addTextChangedListener(object : android.text.TextWatcher {
@@ -209,6 +212,10 @@ class MainActivity : AppCompatActivity() {
         ensurePermissions()
         connectToPlaybackService()
         handler.post(progressRunnable)
+    }
+
+    private fun openNowPlaying() {
+        startActivity(Intent(this, NowPlayingActivity::class.java))
     }
 
     private fun ensurePermissions() {
@@ -313,7 +320,7 @@ class MainActivity : AppCompatActivity() {
                 LibraryEntry(
                     id = genre.id,
                     title = genre.name,
-                    subtitle = "$genre.trackCount songs"
+                    subtitle = "${genre.trackCount} songs"
                 )
             }
         )
@@ -381,7 +388,6 @@ class MainActivity : AppCompatActivity() {
             }
 
             LibraryMode.GENRES -> {
-                selectedGenreId = entry.id
                 visibleTracks = GenreRepository.tracksForGenre(this, entry.id)
                 trackList.adapter = trackAdapter
                 trackAdapter.submitTracks(visibleTracks)
@@ -389,7 +395,6 @@ class MainActivity : AppCompatActivity() {
             }
 
             LibraryMode.PLAYLISTS -> {
-                selectedPlaylist = entry.title
                 startActivity(
                     Intent(this, PlaylistActivity::class.java)
                         .putExtra(PlaylistActivity.EXTRA_PLAYLIST, entry.title)
@@ -433,14 +438,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun playNext(track: Track) {
         val controller = mediaController ?: return
-        val item = PlaybackService.createMediaItem(track)
-        controller.addMediaItem(controller.currentMediaItemIndex + 1, item)
+        controller.addMediaItem(
+            controller.currentMediaItemIndex + 1,
+            PlaybackService.createMediaItem(this, track)
+        )
         Toast.makeText(this, R.string.play_next, Toast.LENGTH_SHORT).show()
     }
 
     private fun addToQueue(track: Track) {
         val controller = mediaController ?: return
-        controller.addMediaItem(PlaybackService.createMediaItem(track))
+        controller.addMediaItem(PlaybackService.createMediaItem(this, track))
         Toast.makeText(this, R.string.add_to_queue, Toast.LENGTH_SHORT).show()
     }
 
@@ -478,9 +485,7 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this, R.string.add_to_playlist, Toast.LENGTH_SHORT).show()
                 }
             }
-            .setNeutralButton(R.string.new_playlist) { _, _ ->
-                createPlaylistDialog()
-            }
+            .setNeutralButton(R.string.new_playlist) { _, _ -> createPlaylistDialog() }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
@@ -524,15 +529,6 @@ class MainActivity : AppCompatActivity() {
         showPlaylists()
     }
 
-    private fun exportPlaylist(uri: Uri) {
-        val name = selectedPlaylist ?: return
-        val tracks = PlaybackPreferences.getPlaylistTracks(this, name)
-        contentResolver.openOutputStream(uri)?.use { output ->
-            output.write(LibrarySorter.exportM3U(this, tracks).toByteArray())
-        }
-        Toast.makeText(this, R.string.playlist_exported, Toast.LENGTH_SHORT).show()
-    }
-
     private fun restoreSavedQueue(controller: MediaController) {
         if (queueLoaded || controller.mediaItemCount > 0) return
 
@@ -545,7 +541,7 @@ class MainActivity : AppCompatActivity() {
         trackAdapter.submitTracks(tracks)
 
         controller.setMediaItems(
-            tracks.map(PlaybackService::createMediaItem),
+            tracks.map { PlaybackService.createMediaItem(this, it) },
             saved.index.coerceIn(0, tracks.lastIndex),
             saved.positionMs
         )
@@ -558,7 +554,7 @@ class MainActivity : AppCompatActivity() {
 
         queueLoaded = true
         controller.setMediaItems(
-            visibleTracks.map(PlaybackService::createMediaItem),
+            visibleTracks.map { PlaybackService.createMediaItem(this, it) },
             position,
             0L
         )

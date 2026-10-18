@@ -5,9 +5,6 @@ import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
 
-import android.net.Uri
-import android.provider.MediaStore
-
 data class Track(
     val id: Long,
     val title: String,

@@ -4,6 +4,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -12,8 +15,10 @@ import androidx.media3.common.PlaybackParameters
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
-import android.os.Handler
-import android.os.Looper
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
 
 class PlaybackService : MediaSessionService() {
 
@@ -35,8 +40,7 @@ class PlaybackService : MediaSessionService() {
             if (crossfadeMs > 0 && player.isPlaying) {
                 val remaining = player.duration - player.currentPosition
                 if (remaining in 1 until crossfadeMs) {
-                    val fraction = remaining.toFloat() / crossfadeMs
-                    player.volume = fraction.coerceIn(0f, 1f)
+                    player.volume = (remaining.toFloat() / crossfadeMs).coerceIn(0f, 1f)
                 } else if (remaining > crossfadeMs) {
                     player.volume = 1f
                 }
@@ -59,6 +63,30 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
+    private val sessionCallback = object : MediaSession.Callback {
+        override fun onCustomCommand(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            customCommand: SessionCommand,
+            args: Bundle
+        ): ListenableFuture<SessionResult> {
+            when (customCommand.customAction) {
+                ACTION_START_SLEEP_TIMER -> {
+                    val minutes = customCommand.customExtras.getInt("minutes", 30)
+                    startSleepTimer(minutes)
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
+
+                ACTION_CANCEL_SLEEP_TIMER -> {
+                    cancelSleepTimer()
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
+            }
+
+            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_NOT_SUPPORTED))
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
 
@@ -77,7 +105,10 @@ class PlaybackService : MediaSessionService() {
         player.repeatMode = ExoPlayer.REPEAT_MODE_ALL
         player.setPauseAtEndOfMediaItems(false)
 
-        mediaSession = MediaSession.Builder(this, player).build()
+        mediaSession = MediaSession.Builder(this, player)
+            .setCallback(sessionCallback)
+            .build()
+
         applyAudioSettings()
 
         registerReceiver(
@@ -102,18 +133,15 @@ class PlaybackService : MediaSessionService() {
             AudioSettings.getReplayGainPreamp(this)
         } else 0f
 
-        player.volume = 10f.pow(preamp / 20f).coerceIn(0f, 1f)
+        player.volume = Math.pow(10.0, (preamp / 20.0)).toFloat().coerceIn(0f, 1f)
     }
 
-    private fun Float.pow(exponent: Float): Float =
-        Math.pow(this.toDouble(), exponent.toDouble()).toFloat()
-
-    fun startSleepTimer(minutes: Int) {
+    private fun startSleepTimer(minutes: Int) {
         sleepTimerEnd = System.currentTimeMillis() + minutes * 60_000L
         handler.post(sleepTimerRunnable)
     }
 
-    fun cancelSleepTimer() {
+    private fun cancelSleepTimer() {
         sleepTimerEnd = 0
     }
 
@@ -136,12 +164,15 @@ class PlaybackService : MediaSessionService() {
 
     companion object {
         const val ACTION_AUDIO_SETTINGS_CHANGED = "com.peusicplus.player.AUDIO_SETTINGS_CHANGED"
+        const val ACTION_START_SLEEP_TIMER = "com.peusicplus.player.START_SLEEP_TIMER"
+        const val ACTION_CANCEL_SLEEP_TIMER = "com.peusicplus.player.CANCEL_SLEEP_TIMER"
 
-        fun createMediaItem(track: Track): MediaItem {
+        fun createMediaItem(context: Context, track: Track): MediaItem {
+            val overridden = MetadataOverrides.applyToTrack(context, track)
             val metadata = MediaMetadata.Builder()
-                .setTitle(track.title)
-                .setArtist(track.artist)
-                .setAlbumTitle(track.album)
+                .setTitle(overridden.title)
+                .setArtist(overridden.artist)
+                .setAlbumTitle(overridden.album)
                 .build()
 
             return MediaItem.Builder()
