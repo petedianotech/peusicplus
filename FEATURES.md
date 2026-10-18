@@ -10,58 +10,41 @@ Poweramp contributes the advanced audio-engine, equalizer/DSP, hi-res, visualiza
 - Respect the user: no ads, no tracking, and local data stays on the device.
 - Build incrementally: every merged step should produce a runnable app.
 - Favor Android platform APIs: MediaStore, MediaSession, ExoPlayer, and foreground services.
+- Keep CI green: every push must produce an installable debug APK.
 
-## Phase 1 — Native Android foundation
+## Phase 1 — Foundation, playback, and library
 
 - ✅ Native Kotlin Android application project
 - ✅ Gradle Kotlin DSL build configuration
 - ✅ Material 3 dark user interface
-- ✅ Audio playback with play/pause, next, previous, seek, and completion handling
 - ✅ Device audio library scanning through MediaStore
 - ✅ Runtime audio permission request
 - ✅ Play tracks directly from device storage using content URIs
 - ✅ Track list showing title, artist, album, and duration
-- ✅ Project feature roadmap and development plan
-
-## Phase 2 — Production playback engine
-
 - ✅ Media3 ExoPlayer playback engine
 - ✅ Foreground `MediaSessionService` for background playback
 - ✅ System media notification and playback controls
 - ✅ Lock-screen and external media-controller integration
-- ✅ Media session architecture for Bluetooth, headset, and Android Auto integration
-- ✅ Persistent player owned by the service rather than the Activity
 - ✅ Queue-based playback using Media3 media items
-- ✅ Track transitions and now-playing state updates
 - ✅ Audio-focus handling and pause-on-call behavior
 - ✅ Becoming-noisy handling for headphone disconnection
 - ✅ Persistent queue and playback position across app restarts
 - ✅ Shuffle toggle
 - ✅ Repeat modes: off, repeat all, and repeat one
-- [ ] Gapless playback configuration
-- [ ] Crossfade with configurable duration
-- [ ] Playback speed and pitch controls
-- [ ] Sleep timer
-- [ ] Bookmarks and resume positions
-- [ ] Wide format validation: MP3, AAC, FLAC, ALAC, WAV, OGG, and Opus
-
-## Phase 3 — Library and navigation
-
 - ✅ Songs, albums, artists, and folders library tabs
 - ✅ Album artwork loading from MediaStore
 - ✅ Album, artist, and folder drill-down views
 - ✅ Track artwork in song lists
 - ✅ Back navigation from album, artist, and folder views
-- ✅ Library search across title, artist, and album
-- ✅ Album, artist, and folder grouping
-- [ ] Dedicated search screen
+- ✅ Library search foundation across title, artist, and album
+- ✅ GitHub Actions workflow that builds an installable debug APK on every push
+
+## Phase 2 — Library, queue, and playlists
+
+- [ ] Dedicated search screen with live results
 - [ ] Sort options: title, artist, album, duration, date added, and file path
-- [ ] Library refresh and storage-location handling
-- [ ] Empty, loading, and permission-denied states
-- [ ] Genres and playlists tabs
-
-## Phase 4 — Queue and playlists
-
+- [ ] Genres tab and genre drill-down
+- [ ] Playlists tab
 - [ ] Dynamic play queue screen
 - [ ] Multiple independent queues
 - [ ] Add to queue, play next, and move/remove queue items
@@ -71,9 +54,16 @@ Poweramp contributes the advanced audio-engine, equalizer/DSP, hi-res, visualiza
 - [ ] Export playlists
 - [ ] Smart playlists based on rules
 - [ ] Favorites and recently played
+- [ ] Library refresh and storage-location handling
+- [ ] Empty, loading, and permission-denied states
 
-## Phase 5 — Audio enhancement
+## Phase 3 — Advanced playback and sound
 
+- [ ] Gapless playback configuration
+- [ ] Crossfade with configurable duration
+- [ ] Playback speed and pitch controls
+- [ ] Sleep timer
+- [ ] Bookmarks and resume positions
 - [ ] Equalizer UI with presets
 - [ ] Graphic equalizer bands
 - [ ] Parametric equalizer mode
@@ -85,9 +75,12 @@ Poweramp contributes the advanced audio-engine, equalizer/DSP, hi-res, visualiza
 - [ ] Per-output audio settings
 - [ ] Direct volume control exploration
 - [ ] Hi-res and USB DAC output investigation
+- [ ] Wide format validation: MP3, AAC, FLAC, ALAC, WAV, OGG, and Opus
 
-## Phase 6 — Lyrics and metadata
+## Phase 4 — Lyrics, metadata, and Now Playing
 
+- [ ] Full Now Playing screen with large artwork
+- [ ] Swipe gestures for track changes
 - [ ] Embedded lyrics display
 - [ ] Plain-text `.lrc` lyrics support
 - [ ] Synchronized lyrics with timing
@@ -97,10 +90,8 @@ Poweramp contributes the advanced audio-engine, equalizer/DSP, hi-res, visualiza
 - [ ] Album-art editor and embedded artwork support
 - [ ] Detailed audio-format and codec information
 
-## Phase 7 — Interface and customization
+## Phase 5 — Interface, integrations, and release
 
-- [ ] Full Now Playing screen with large artwork
-- [ ] Swipe gestures for track changes
 - [ ] Customizable home layout
 - [ ] Light, dark, AMOLED, and custom themes
 - [ ] Accent-color customization
@@ -109,12 +100,8 @@ Poweramp contributes the advanced audio-engine, equalizer/DSP, hi-res, visualiza
 - [ ] Widgets
 - [ ] Android Auto support
 - [ ] Android TV / large-screen layout
-
-## Phase 8 — Quality and release
-
 - [ ] Unit tests for repository, queue, and playback logic
 - [ ] UI tests for core player flows
-- [ ] Crash-free release build configuration
 - [ ] Accessibility audit and TalkBack support
 - [ ] Performance profiling and battery optimization
 - [ ] User-facing settings backup and restore
@@ -123,4 +110,4 @@ Poweramp contributes the advanced audio-engine, equalizer/DSP, hi-res, visualiza
 
 ## Current milestone
 
-**Library navigation complete.** PeusicPlus now provides Songs, Albums, Artists, and Folders views, album artwork, drill-down navigation, and the foundation for search and sorting. The next milestone adds a dedicated search screen, sorting controls, genres, playlists, and a full Now Playing screen.
+**CI and roadmap consolidation complete.** Every push to `main` now builds an installable debug APK with GitHub Actions and uploads it as a workflow artifact. The next development milestone is Phase 2: dedicated search, sorting, genres, playlists, and queue management.
