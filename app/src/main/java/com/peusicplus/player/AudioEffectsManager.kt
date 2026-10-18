@@ -6,11 +6,6 @@ import android.media.audiofx.Equalizer
 import android.media.audiofx.PresetReverb
 import android.media.audiofx.Virtualizer
 
-/**
- * Attaches Android audio effects to the active ExoPlayer audio session.
- * Settings are persisted locally and reloaded whenever the service restarts
- * or receives an audio-settings change.
- */
 object AudioEffectsManager {
 
     private var equalizer: Equalizer? = null
@@ -50,7 +45,7 @@ object AudioEffectsManager {
 
             reverb = PresetReverb(0, audioSessionId).also {
                 it.enabled = AudioSettings.getReverbPreset(context) != PresetReverb.PRESET_NONE
-                it.preset = AudioSettings.getReverbPreset(context)
+                it.setPreset(AudioSettings.getReverbPreset(context))
             }
         }
     }

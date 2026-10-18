@@ -3,8 +3,6 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-// Media3 pulls in the tiny `listenablefuture` artifact, which conflicts with
-// the full Guava dependency used for MediaSession custom-command futures.
 configurations.all {
     exclude(group = "com.google.guava", module = "listenablefuture")
 }
@@ -17,8 +15,8 @@ android {
         applicationId = "com.peusicplus.player"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.3.2"
+        versionCode = 7
+        versionName = "1.3.3"
     }
 
     testOptions {
@@ -59,7 +57,7 @@ dependencies {
     implementation("androidx.media3:media3-common:1.5.1")
 
     implementation("io.coil-kt:coil:2.7.0")
-    implementation("com.google.guava:guava:33.3.1-android")
+    implementation("com.google.guava:guava:33.2.1-android")
 
     testImplementation("junit:junit:4.13.2")
 }
