@@ -1,11 +1,16 @@
-# PeusicPlus Feature Plan
+# Build Fix: Guava ListenableFuture conflict
 
-## Build reliability fixes
+The previous failure was caused by duplicate `com.google.common.util.concurrent.ListenableFuture` classes:
 
-- ✅ Removed unresolved `R.id.settingsButton` reference; Settings is now opened by long-pressing the PeusicPlus title
-- ✅ Fixed `GestureDetector.SimpleOnGestureListener.onFling` override for the non-null `MotionEvent` signature used by compileSdk 35
-- ✅ Retained all prior build fixes: launcher icons, Guava dependency, photo-picker API, Android 14 receiver registration, and visualizer permission flow
+- `com.google.guava:guava:33.3.1-android` provides the full Guava class set, including `Futures`.
+- Media3’s transitive `androidx.media:media` dependency pulls in `com.google.guava:listenablefuture:1.0`, which contains another copy of `ListenableFuture`.
 
-## Current milestone
+The build now excludes the standalone `listenablefuture` artifact globally:
 
-**Compile-blocking references fixed.** The next CI run should compile `MainActivity` and `NowPlayingActivity` successfully and produce the installable debug APK artifact.
+```kotlin
+configurations.all {
+    exclude(group = "com.google.guava", module = "listenablefuture")
+}
+```
+
+Full Guava remains available for `Futures.immediateFuture(...)` in `PlaybackService`, while Media3 uses the same Guava-provided `ListenableFuture` class.
