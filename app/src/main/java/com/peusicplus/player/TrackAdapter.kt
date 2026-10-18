@@ -8,7 +8,8 @@ import androidx.recyclerview.widget.RecyclerView
 import coil.load
 
 class TrackAdapter(
-    private val onTrackClick: (Int) -> Unit
+    private val onTrackClick: (Int) -> Unit,
+    private val onTrackLongClick: (Int) -> Unit
 ) : RecyclerView.Adapter<TrackAdapter.TrackViewHolder>() {
 
     private var tracks: List<Track> = emptyList()
@@ -38,6 +39,10 @@ class TrackAdapter(
         }
         holder.itemView.isSelected = position == selectedPosition
         holder.itemView.setOnClickListener { onTrackClick(position) }
+        holder.itemView.setOnLongClickListener {
+            onTrackLongClick(position)
+            true
+        }
     }
 
     override fun getItemCount(): Int = tracks.size

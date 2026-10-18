@@ -2,17 +2,21 @@ package com.peusicplus.player
 
 import android.Manifest
 import android.content.ComponentName
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
@@ -23,14 +27,16 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.ChipGroup
 
-
 class MainActivity : AppCompatActivity() {
 
-    private enum class LibraryMode { SONGS, ALBUMS, ARTISTS, FOLDERS }
+    private enum class LibraryMode {
+        SONGS, ALBUMS, ARTISTS, FOLDERS, GENRES, PLAYLISTS, FAVORITES, RECENT, RECENT_ADDED
+    }
 
     private lateinit var trackAdapter: TrackAdapter
     private lateinit var libraryAdapter: LibraryAdapter
     private lateinit var trackList: RecyclerView
+    private lateinit var searchInput: EditText
 
     private lateinit var titleText: TextView
     private lateinit var artistText: TextView
@@ -46,6 +52,8 @@ class MainActivity : AppCompatActivity() {
     private var allTracks: List<Track> = emptyList()
     private var visibleTracks: List<Track> = emptyList()
     private var currentMode = LibraryMode.SONGS
+    private var selectedGenreId: Long = -1
+    private var selectedPlaylist: String? = null
     private var queueLoaded = false
     private val handler = Handler(Looper.getMainLooper())
 
@@ -60,6 +68,14 @@ class MainActivity : AppCompatActivity() {
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { }
+
+    private val importPlaylistLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> uri?.let { importPlaylist(it) } }
+
+    private val exportPlaylistLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri -> uri?.let { exportPlaylist(it) } }
 
     private val progressRunnable = object : Runnable {
         override fun run() {
@@ -116,8 +132,13 @@ class MainActivity : AppCompatActivity() {
         repeatButton = findViewById(R.id.repeatButton)
         backButton = findViewById(R.id.backButton)
         trackList = findViewById(R.id.trackList)
+        searchInput = findViewById(R.id.searchInput)
 
-        trackAdapter = TrackAdapter { position -> playFromLibrary(position) }
+        trackAdapter = TrackAdapter(
+            onTrackClick = { position -> playFromLibrary(position) },
+            onTrackLongClick = { position -> showTrackActions(position) }
+        )
+
         libraryAdapter = LibraryAdapter { entry -> openLibraryEntry(entry) }
 
         trackList.layoutManager = LinearLayoutManager(this)
@@ -153,16 +174,22 @@ class MainActivity : AppCompatActivity() {
 
         backButton.setOnClickListener { showSongs() }
 
-        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (fromUser) {
-                    mediaController?.seekTo(progress.toLong())
-                    currentTimeText.text = formatTime(progress.toLong())
-                }
-            }
+        findViewById<ImageButton>(R.id.queueButton).setOnClickListener {
+            startActivity(Intent(this, QueueActivity::class.java))
+        }
 
-            override fun onStartTrackingTouch(bar: SeekBar?) = Unit
-            override fun onStopTrackingTouch(bar: SeekBar?) = Unit
+        findViewById<ImageButton>(R.id.sortButton).setOnClickListener { showSortMenu() }
+        findViewById<ImageButton>(R.id.importButton).setOnClickListener {
+            importPlaylistLauncher.launch(arrayOf("text/*", "audio/x-mpegurl", "application/vnd.apple.mpegurl"))
+        }
+        findViewById<ImageButton>(R.id.newPlaylistButton).setOnClickListener { createPlaylistDialog() }
+
+        searchInput.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
+            override fun afterTextChanged(s: android.text.Editable?) {
+                applySearchAndShowSongs()
+            }
         })
 
         findViewById<ChipGroup>(R.id.libraryTabs).setOnCheckedStateChangeListener { _, checkedIds ->
@@ -170,6 +197,11 @@ class MainActivity : AppCompatActivity() {
                 R.id.albumsChip -> showAlbums()
                 R.id.artistsChip -> showArtists()
                 R.id.foldersChip -> showFolders()
+                R.id.genresChip -> showGenres()
+                R.id.playlistsChip -> showPlaylists()
+                R.id.favoritesChip -> showFavorites()
+                R.id.recentChip -> showRecentlyPlayed()
+                R.id.recentAddedChip -> showRecentlyAdded()
                 else -> showSongs()
             }
         }
@@ -222,7 +254,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadDeviceLibrary() {
-        allTracks = MusicLibraryRepository.loadTracks(this)
+        allTracks = LibrarySorter.sortTracks(this, MusicLibraryRepository.loadTracks(this))
         showSongs()
 
         if (allTracks.isEmpty()) {
@@ -231,11 +263,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun applySearchAndShowSongs() {
+        if (currentMode != LibraryMode.SONGS) return
+        val query = searchInput.text.toString()
+        visibleTracks = LibrarySorter.sortTracks(
+            this,
+            MusicLibraryRepository.searchTracks(allTracks, query)
+        )
+        trackAdapter.submitTracks(visibleTracks)
+
+        if (visibleTracks.isEmpty() && query.isNotBlank()) {
+            titleText.text = getString(R.string.no_results)
+        }
+    }
+
     private fun showSongs() {
         currentMode = LibraryMode.SONGS
-        visibleTracks = allTracks
-        trackList.adapter = trackAdapter
-        trackAdapter.submitTracks(visibleTracks)
+        applySearchAndShowSongs()
         backButton.visibility = View.GONE
     }
 
@@ -260,17 +304,233 @@ class MainActivity : AppCompatActivity() {
         backButton.visibility = View.GONE
     }
 
-    private fun openLibraryEntry(entry: LibraryEntry) {
-        visibleTracks = when (currentMode) {
-            LibraryMode.ALBUMS -> MusicLibraryRepository.tracksForAlbum(allTracks, entry.id)
-            LibraryMode.ARTISTS -> MusicLibraryRepository.tracksForArtist(allTracks, entry.title)
-            LibraryMode.FOLDERS -> MusicLibraryRepository.tracksForFolder(allTracks, entry.path)
-            else -> allTracks
-        }
+    private fun showGenres() {
+        currentMode = LibraryMode.GENRES
+        trackList.adapter = libraryAdapter
+        val genres = GenreRepository.loadGenres(this)
+        libraryAdapter.submitEntries(
+            genres.map { genre ->
+                LibraryEntry(
+                    id = genre.id,
+                    title = genre.name,
+                    subtitle = "$genre.trackCount songs"
+                )
+            }
+        )
+        backButton.visibility = View.GONE
+    }
 
+    private fun showPlaylists() {
+        currentMode = LibraryMode.PLAYLISTS
+        trackList.adapter = libraryAdapter
+        val playlists = PlaybackPreferences.getPlaylists(this)
+        libraryAdapter.submitEntries(
+            playlists.map { name ->
+                val count = PlaybackPreferences.getPlaylistTracks(this, name).size
+                LibraryEntry(id = name.hashCode().toLong(), title = name, subtitle = "$count tracks")
+            }
+        )
+        backButton.visibility = View.GONE
+    }
+
+    private fun showFavorites() {
+        currentMode = LibraryMode.FAVORITES
+        visibleTracks = PlaybackPreferences.getFavorites(this)
         trackList.adapter = trackAdapter
         trackAdapter.submitTracks(visibleTracks)
-        backButton.visibility = View.VISIBLE
+        backButton.visibility = View.GONE
+    }
+
+    private fun showRecentlyPlayed() {
+        currentMode = LibraryMode.RECENT
+        visibleTracks = PlaybackPreferences.getRecentlyPlayed(this)
+        trackList.adapter = trackAdapter
+        trackAdapter.submitTracks(visibleTracks)
+        backButton.visibility = View.GONE
+    }
+
+    private fun showRecentlyAdded() {
+        currentMode = LibraryMode.RECENT_ADDED
+        visibleTracks = LibrarySorter.recentlyAdded(allTracks)
+        trackList.adapter = trackAdapter
+        trackAdapter.submitTracks(visibleTracks)
+        backButton.visibility = View.GONE
+    }
+
+    private fun openLibraryEntry(entry: LibraryEntry) {
+        when (currentMode) {
+            LibraryMode.ALBUMS -> {
+                visibleTracks = MusicLibraryRepository.tracksForAlbum(allTracks, entry.id)
+                trackList.adapter = trackAdapter
+                trackAdapter.submitTracks(visibleTracks)
+                backButton.visibility = View.VISIBLE
+            }
+
+            LibraryMode.ARTISTS -> {
+                visibleTracks = MusicLibraryRepository.tracksForArtist(allTracks, entry.title)
+                trackList.adapter = trackAdapter
+                trackAdapter.submitTracks(visibleTracks)
+                backButton.visibility = View.VISIBLE
+            }
+
+            LibraryMode.FOLDERS -> {
+                visibleTracks = MusicLibraryRepository.tracksForFolder(allTracks, entry.path)
+                trackList.adapter = trackAdapter
+                trackAdapter.submitTracks(visibleTracks)
+                backButton.visibility = View.VISIBLE
+            }
+
+            LibraryMode.GENRES -> {
+                selectedGenreId = entry.id
+                visibleTracks = GenreRepository.tracksForGenre(this, entry.id)
+                trackList.adapter = trackAdapter
+                trackAdapter.submitTracks(visibleTracks)
+                backButton.visibility = View.VISIBLE
+            }
+
+            LibraryMode.PLAYLISTS -> {
+                selectedPlaylist = entry.title
+                startActivity(
+                    Intent(this, PlaylistActivity::class.java)
+                        .putExtra(PlaylistActivity.EXTRA_PLAYLIST, entry.title)
+                )
+            }
+
+            else -> showSongs()
+        }
+    }
+
+    private fun showTrackActions(position: Int) {
+        val track = visibleTracks.getOrNull(position) ?: return
+        val isFavorite = PlaybackPreferences.isFavorite(this, track)
+
+        val options = arrayOf(
+            getString(R.string.play_next),
+            getString(R.string.add_to_queue),
+            getString(R.string.add_to_playlist),
+            if (isFavorite) getString(R.string.unfavorite) else getString(R.string.favorite)
+        )
+
+        AlertDialog.Builder(this)
+            .setTitle(track.title)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> playNext(track)
+                    1 -> addToQueue(track)
+                    2 -> addToPlaylistDialog(track)
+                    3 -> {
+                        val added = PlaybackPreferences.toggleFavorite(this, track)
+                        Toast.makeText(
+                            this,
+                            if (added) R.string.favorite else R.string.unfavorite,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
+            .show()
+    }
+
+    private fun playNext(track: Track) {
+        val controller = mediaController ?: return
+        val item = PlaybackService.createMediaItem(track)
+        controller.addMediaItem(controller.currentMediaItemIndex + 1, item)
+        Toast.makeText(this, R.string.play_next, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun addToQueue(track: Track) {
+        val controller = mediaController ?: return
+        controller.addMediaItem(PlaybackService.createMediaItem(track))
+        Toast.makeText(this, R.string.add_to_queue, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun createPlaylistDialog() {
+        val input = EditText(this)
+        input.hint = getString(R.string.playlist_name)
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.new_playlist)
+            .setView(input)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                PlaybackPreferences.createPlaylist(this, input.text.toString())
+                showPlaylists()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun addToPlaylistDialog(track: Track) {
+        val playlists = PlaybackPreferences.getPlaylists(this).toTypedArray()
+
+        if (playlists.isEmpty()) {
+            createPlaylistDialog()
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.add_to_playlist)
+            .setItems(playlists) { _, which ->
+                val name = playlists[which]
+                val tracks = PlaybackPreferences.getPlaylistTracks(this, name).toMutableList()
+                if (tracks.none { it.id == track.id }) {
+                    tracks.add(track)
+                    PlaybackPreferences.savePlaylistTracks(this, name, tracks)
+                    Toast.makeText(this, R.string.add_to_playlist, Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNeutralButton(R.string.new_playlist) { _, _ ->
+                createPlaylistDialog()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showSortMenu() {
+        val options = arrayOf(
+            getString(R.string.sort_by_title),
+            getString(R.string.sort_by_artist),
+            getString(R.string.sort_by_album),
+            getString(R.string.sort_by_duration),
+            getString(R.string.sort_by_date),
+            getString(R.string.sort_by_path)
+        )
+
+        val modes = arrayOf("title", "artist", "album", "duration", "date_added", "path")
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.sort)
+            .setItems(options) { _, which ->
+                PlaybackPreferences.setSortMode(this, modes[which])
+                allTracks = LibrarySorter.sortTracks(this, allTracks)
+                showSongs()
+            }
+            .show()
+    }
+
+    private fun importPlaylist(uri: Uri) {
+        val content = contentResolver.openInputStream(uri)?.bufferedReader()?.use {
+            it.readText()
+        } ?: return
+
+        val imported = LibrarySorter.parseM3U(content, allTracks)
+        if (imported.isEmpty()) {
+            Toast.makeText(this, R.string.no_results, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val name = "Imported ${System.currentTimeMillis()}"
+        PlaybackPreferences.createPlaylist(this, name)
+        PlaybackPreferences.savePlaylistTracks(this, name, imported)
+        showPlaylists()
+    }
+
+    private fun exportPlaylist(uri: Uri) {
+        val name = selectedPlaylist ?: return
+        val tracks = PlaybackPreferences.getPlaylistTracks(this, name)
+        contentResolver.openOutputStream(uri)?.use { output ->
+            output.write(LibrarySorter.exportM3U(this, tracks).toByteArray())
+        }
+        Toast.makeText(this, R.string.playlist_exported, Toast.LENGTH_SHORT).show()
     }
 
     private fun restoreSavedQueue(controller: MediaController) {
@@ -304,6 +564,10 @@ class MainActivity : AppCompatActivity() {
         )
         controller.prepare()
         controller.play()
+
+        visibleTracks.getOrNull(position)?.let {
+            PlaybackPreferences.addRecentlyPlayed(this, it)
+        }
         trackAdapter.setSelectedPosition(position)
     }
 
