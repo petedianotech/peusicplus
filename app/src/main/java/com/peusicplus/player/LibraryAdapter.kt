@@ -1,5 +1,6 @@
 package com.peusicplus.player
 
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -31,7 +32,8 @@ class LibraryAdapter(
         holder.subtitle.text = entry.subtitle
 
         if (entry.albumId != -1L) {
-            holder.artwork.load(entry.albumArtUri(entry.albumId)) {
+            val artworkUri = Uri.parse("content://media/external/audio/albumart/${entry.albumId}")
+            holder.artwork.load(artworkUri) {
                 crossfade(true)
                 error(R.drawable.ic_music_note)
             }
@@ -47,9 +49,5 @@ class LibraryAdapter(
     fun submitEntries(newEntries: List<LibraryEntry>) {
         entries = newEntries
         notifyDataSetChanged()
-    }
-
-    private fun LibraryEntry.albumArtUri(albumId: Long): Uri {
-        return Uri.parse("content://media/external/audio/albumart/$albumId")
     }
 }

@@ -1,9 +1,5 @@
 package com.peusicplus.player
 
-import android.content.Context
-import android.media.MediaMetadataRetriever
-import android.net.Uri
-
 object LyricsParser {
 
     data class LyricLine(
@@ -15,7 +11,7 @@ object LyricsParser {
         val lines = mutableListOf<LyricLine>()
 
         content.lines().forEach { raw ->
-            val match = Regex("\\[(\\d+):(\\d+)(?:[.:](\\d+))?]\\s*(.*)").find(raw) ?: return@forEach
+            val match = Regex("\\\\[(\\\\d+):(\\\\d+)(?:[.:](\\\\d+))?]\\\\s*(.*)").find(raw) ?: return@forEach
             val minutes = match.groupValues[1].toLongOrNull() ?: return@forEach
             val seconds = match.groupValues[2].toLongOrNull() ?: return@forEach
             val fraction = match.groupValues[3].ifEmpty { "0" }
@@ -42,15 +38,5 @@ object LyricsParser {
             if (line.timeMs <= positionMs) index = i else return index
         }
         return index
-    }
-
-    fun embeddedLyrics(context: Context, uri: Uri): String? {
-        val retriever = MediaMetadataRetriever()
-        return runCatching {
-            retriever.setDataSource(context, uri)
-            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_LYRICS)
-        }.getOrNull().also {
-            runCatching { retriever.release() }
-        }
     }
 }

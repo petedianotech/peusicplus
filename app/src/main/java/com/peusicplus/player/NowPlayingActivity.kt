@@ -182,8 +182,7 @@ class NowPlayingActivity : AppCompatActivity() {
 
     private fun loadLyrics(track: Track) {
         val override = MetadataOverrides.get(this, track.id.toString())
-        val embedded = LyricsParser.embeddedLyrics(this, track.uri)
-        val lyrics = override.lyrics ?: embedded ?: ""
+        val lyrics = override.lyrics ?: ""
 
         lyricLines = LyricsParser.parse(lyrics)
         lyricsText.text = if (lyricLines.isEmpty()) {
@@ -250,7 +249,7 @@ class NowPlayingActivity : AppCompatActivity() {
         val override = MetadataOverrides.get(this, track.id.toString())
 
         val input = android.widget.EditText(this)
-        input.setText(override.lyrics ?: LyricsParser.embeddedLyrics(this, track.uri) ?: "")
+        input.setText(override.lyrics ?: "")
         input.minLines = 8
         input.gravity = android.view.Gravity.TOP
 

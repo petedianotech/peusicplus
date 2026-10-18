@@ -14,6 +14,7 @@ object AudioEffectsManager {
     private var reverb: PresetReverb? = null
 
     fun apply(context: Context, audioSessionId: Int) {
+        if (audioSessionId == 0) return
         release()
 
         runCatching {
@@ -21,7 +22,7 @@ object AudioEffectsManager {
                 eq.enabled = AudioSettings.isEnabled(context)
 
                 val preset = AudioSettings.getEqualizerPreset(context)
-                if (preset >= 0 && preset < eq.numberOfPresets) {
+                if (preset >= 0 && preset < eq.numberOfPresets.toInt()) {
                     eq.usePreset(preset.toShort())
                 }
 

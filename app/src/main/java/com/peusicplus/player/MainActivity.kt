@@ -45,7 +45,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var playButton: ImageButton
     private lateinit var shuffleButton: ImageButton
     private lateinit var repeatButton: ImageButton
-    private lateinit var backButton: ImageButton
 
     private var mediaController: MediaController? = null
     private var allTracks: List<Track> = emptyList()
@@ -124,7 +123,6 @@ class MainActivity : AppCompatActivity() {
         playButton = findViewById(R.id.playButton)
         shuffleButton = findViewById(R.id.shuffleButton)
         repeatButton = findViewById(R.id.repeatButton)
-        backButton = findViewById(R.id.backButton)
         trackList = findViewById(R.id.trackList)
         searchInput = findViewById(R.id.searchInput)
 
@@ -140,9 +138,8 @@ class MainActivity : AppCompatActivity() {
 
         titleText.setOnClickListener { openNowPlaying() }
 
-        findViewById<TextView>(R.id.appTitle).setOnLongClickListener {
+        findViewById<ImageButton>(R.id.settingsButton).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
-            true
         }
 
         playButton.setOnClickListener {
@@ -172,8 +169,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-
-        backButton.setOnClickListener { showSongs() }
 
         findViewById<ImageButton>(R.id.queueButton).setOnClickListener {
             startActivity(Intent(this, QueueActivity::class.java))
@@ -288,28 +283,24 @@ class MainActivity : AppCompatActivity() {
     private fun showSongs() {
         currentMode = LibraryMode.SONGS
         applySearchAndShowSongs()
-        backButton.visibility = View.GONE
     }
 
     private fun showAlbums() {
         currentMode = LibraryMode.ALBUMS
         trackList.adapter = libraryAdapter
         libraryAdapter.submitEntries(MusicLibraryRepository.loadAlbums(allTracks))
-        backButton.visibility = View.GONE
     }
 
     private fun showArtists() {
         currentMode = LibraryMode.ARTISTS
         trackList.adapter = libraryAdapter
         libraryAdapter.submitEntries(MusicLibraryRepository.loadArtists(allTracks))
-        backButton.visibility = View.GONE
     }
 
     private fun showFolders() {
         currentMode = LibraryMode.FOLDERS
         trackList.adapter = libraryAdapter
         libraryAdapter.submitEntries(MusicLibraryRepository.loadFolders(allTracks))
-        backButton.visibility = View.GONE
     }
 
     private fun showGenres() {
@@ -325,7 +316,6 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         )
-        backButton.visibility = View.GONE
     }
 
     private fun showPlaylists() {
@@ -338,7 +328,6 @@ class MainActivity : AppCompatActivity() {
                 LibraryEntry(id = name.hashCode().toLong(), title = name, subtitle = "$count tracks")
             }
         )
-        backButton.visibility = View.GONE
     }
 
     private fun showFavorites() {
@@ -346,7 +335,6 @@ class MainActivity : AppCompatActivity() {
         visibleTracks = PlaybackPreferences.getFavorites(this)
         trackList.adapter = trackAdapter
         trackAdapter.submitTracks(visibleTracks)
-        backButton.visibility = View.GONE
     }
 
     private fun showRecentlyPlayed() {
@@ -354,7 +342,6 @@ class MainActivity : AppCompatActivity() {
         visibleTracks = PlaybackPreferences.getRecentlyPlayed(this)
         trackList.adapter = trackAdapter
         trackAdapter.submitTracks(visibleTracks)
-        backButton.visibility = View.GONE
     }
 
     private fun showRecentlyAdded() {
@@ -362,7 +349,6 @@ class MainActivity : AppCompatActivity() {
         visibleTracks = LibrarySorter.recentlyAdded(allTracks)
         trackList.adapter = trackAdapter
         trackAdapter.submitTracks(visibleTracks)
-        backButton.visibility = View.GONE
     }
 
     private fun openLibraryEntry(entry: LibraryEntry) {
@@ -371,28 +357,24 @@ class MainActivity : AppCompatActivity() {
                 visibleTracks = MusicLibraryRepository.tracksForAlbum(allTracks, entry.id)
                 trackList.adapter = trackAdapter
                 trackAdapter.submitTracks(visibleTracks)
-                backButton.visibility = View.VISIBLE
             }
 
             LibraryMode.ARTISTS -> {
                 visibleTracks = MusicLibraryRepository.tracksForArtist(allTracks, entry.title)
                 trackList.adapter = trackAdapter
                 trackAdapter.submitTracks(visibleTracks)
-                backButton.visibility = View.VISIBLE
             }
 
             LibraryMode.FOLDERS -> {
                 visibleTracks = MusicLibraryRepository.tracksForFolder(allTracks, entry.path)
                 trackList.adapter = trackAdapter
                 trackAdapter.submitTracks(visibleTracks)
-                backButton.visibility = View.VISIBLE
             }
 
             LibraryMode.GENRES -> {
                 visibleTracks = GenreRepository.tracksForGenre(this, entry.id)
                 trackList.adapter = trackAdapter
                 trackAdapter.submitTracks(visibleTracks)
-                backButton.visibility = View.VISIBLE
             }
 
             LibraryMode.PLAYLISTS -> {
@@ -539,11 +521,11 @@ class MainActivity : AppCompatActivity() {
         queueLoaded = true
         allTracks = saved.tracks
         visibleTracks = saved.tracks
-        trackAdapter.submitTracks(tracks)
+        trackAdapter.submitTracks(saved.tracks)
 
         controller.setMediaItems(
-            tracks.map { PlaybackService.createMediaItem(this, it) },
-            saved.index.coerceIn(0, tracks.lastIndex),
+            saved.tracks.map { PlaybackService.createMediaItem(this, it) },
+            saved.index.coerceIn(0, saved.tracks.lastIndex),
             saved.positionMs
         )
         controller.prepare()

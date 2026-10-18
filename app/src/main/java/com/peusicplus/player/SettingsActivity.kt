@@ -1,7 +1,6 @@
 package com.peusicplus.player
 
-import android.content.ComponentName
-import android.content.Intent
+import android.content.Context
 import android.media.audiofx.Equalizer
 import android.media.audiofx.PresetReverb
 import android.os.Bundle
@@ -26,10 +25,20 @@ class SettingsActivity : AppCompatActivity() {
 
     private var mediaController: MediaController? = null
 
+    private val backupLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri -> uri?.let { exportSettings(it) } }
+
+    private val restoreLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> uri?.let { importSettings(it) } }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ThemeManager.apply(this)
         setContentView(R.layout.activity_settings)
 
+        setupAppearance()
         setupPlaybackControls()
         setupAudioEffects()
         setupSleepTimer()
@@ -37,7 +46,43 @@ class SettingsActivity : AppCompatActivity() {
         setupOutputProfile()
 
         findViewById<Button>(R.id.openQueueButton).setOnClickListener {
-            startActivity(Intent(this, QueueActivity::class.java))
+            startActivity(android.content.Intent(this, QueueActivity::class.java))
+        }
+
+        findViewById<Button>(R.id.backupButton).setOnClickListener {
+            backupLauncher.launch("peusicplus-settings.json")
+        }
+
+        findViewById<Button>(R.id.restoreButton).setOnClickListener {
+            restoreLauncher.launch(arrayOf("application/json", "text/*"))
+        }
+    }
+
+    private fun setupAppearance() {
+        val themeSpinner = findViewById<Spinner>(R.id.themeSpinner)
+        val themes = listOf("dark", "amoled", "light")
+
+        themeSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_dropdown_item,
+            listOf("Dark", "AMOLED", "Light")
+        )
+
+        themeSpinner.setSelection(themes.indexOf(ThemeManager.getTheme(this)).coerceAtLeast(0))
+        themeSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+                if (ThemeManager.getTheme(this@SettingsActivity) != themes[position]) {
+                    ThemeManager.setTheme(this@SettingsActivity, themes[position])
+                }
+            }
+
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+        }
+
+        val visualizerSwitch = findViewById<Switch>(R.id.visualizerSwitch)
+        visualizerSwitch.isChecked = ThemeManager.isVisualizerEnabled(this)
+        visualizerSwitch.setOnCheckedChangeListener { _, checked ->
+            ThemeManager.setVisualizerEnabled(this, checked)
         }
     }
 
@@ -152,11 +197,15 @@ class SettingsActivity : AppCompatActivity() {
                 progress = savedLevels.getOrNull(band)?.plus(15) ?: 15
                 setOnSeekBarChangeListener(simpleListener { progress ->
                     val level = progress - 15
-                    val levels = AudioSettings.getEqualizerBandLevels(this@SettingsActivity)
-                        .ifEmpty { IntArray(bandLabels.size) { 0 } }
-                        .copyOf()
-                    levels[band] = level
-                    AudioSettings.setEqualizerBandLevels(this@SettingsActivity, levels)
+                    val currentLevels = AudioSettings.getEqualizerBandLevels(this@SettingsActivity)
+                    val newLevels = if (currentLevels.size == bandLabels.size) {
+                        currentLevels.copyOf()
+                    } else {
+                        IntArray(bandLabels.size)
+                    }
+
+                    newLevels[band] = level
+                    AudioSettings.setEqualizerBandLevels(this@SettingsActivity, newLevels)
                     AudioSettings.setEqualizerPreset(this@SettingsActivity, -1)
                     notifyService()
                 })
@@ -220,33 +269,22 @@ class SettingsActivity : AppCompatActivity() {
 
         buttons.forEach { (id, minutes) ->
             findViewById<Button>(id).setOnClickListener {
-                val action = if (minutes == 0) {
-                    PlaybackService.ACTION_CANCEL_SLEEP_TIMER
+                val message = if (minutes == 0) {
+                    sendCustomCommand(PlaybackService.ACTION_CANCEL_SLEEP_TIMER, Bundle.EMPTY)
+                    getString(R.string.sleep_timer_cancelled)
                 } else {
-                    PlaybackService.ACTION_START_SLEEP_TIMER
+                    val args = Bundle().apply { putInt("minutes", minutes) }
+                    sendCustomCommand(PlaybackService.ACTION_START_SLEEP_TIMER, args)
+                    getString(R.string.sleep_timer_set, minutes)
                 }
 
-                val extras = android.os.Bundle.EMPTY
-                if (minutes > 0) {
-                    val args = android.os.Bundle()
-                    args.putInt("minutes", minutes)
-                    sendCustomCommand(action, args)
-                } else {
-                    sendCustomCommand(action, extras)
-                }
-
-                Toast.makeText(
-                    this,
-                    if (minutes == 0) R.string.sleep_timer_cancelled
-                    else getString(R.string.sleep_timer_set, minutes),
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun sendCustomCommand(action: String, args: android.os.Bundle) {
-        mediaController?.sendCustomCommand(SessionCommand(action, args), android.os.Bundle.EMPTY)
+    private fun sendCustomCommand(action: String, args: Bundle) {
+        mediaController?.sendCustomCommand(SessionCommand(action, args), Bundle.EMPTY)
     }
 
     private fun setupBookmarks() {
@@ -298,6 +336,61 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    private fun exportSettings(uri: android.net.Uri) {
+        val settings = org.json.JSONObject()
+            .put("theme", ThemeManager.getTheme(this))
+            .put("visualizer", ThemeManager.isVisualizerEnabled(this))
+            .put("speed", AudioSettings.getPlaybackSpeed(this).toDouble())
+            .put("pitch", AudioSettings.getPitch(this).toDouble())
+            .put("gapless", AudioSettings.isGaplessEnabled(this))
+            .put("crossfade", AudioSettings.getCrossfadeSeconds(this))
+            .put("replayGain", AudioSettings.getReplayGainPreamp(this).toDouble())
+            .put("replayGainEnabled", AudioSettings.isReplayGainEnabled(this))
+            .put("equalizerEnabled", AudioSettings.isEnabled(this))
+            .put("equalizerPreset", AudioSettings.getEqualizerPreset(this))
+            .put("bass", AudioSettings.getBassBoost(this))
+            .put("virtualizer", AudioSettings.getVirtualizer(this))
+            .put("outputProfile", AudioSettings.getOutputProfile(this))
+
+        contentResolver.openOutputStream(uri)?.use { output ->
+            output.write(settings.toString().toByteArray())
+        }
+
+        Toast.makeText(this, R.string.backup_saved, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun importSettings(uri: android.net.Uri) {
+        val content = contentResolver.openInputStream(uri)?.bufferedReader()?.use {
+            it.readText()
+        } ?: return
+
+        val restored = runCatching {
+            val json = org.json.JSONObject(content)
+            ThemeManager.setTheme(this, json.optString("theme", "dark"))
+            ThemeManager.setVisualizerEnabled(this, json.optBoolean("visualizer", true))
+            AudioSettings.setPlaybackSpeed(this, json.optDouble("speed", 1.0).toFloat())
+            AudioSettings.setPitch(this, json.optDouble("pitch", 1.0).toFloat())
+            AudioSettings.setGaplessEnabled(this, json.optBoolean("gapless", true))
+            AudioSettings.setCrossfadeSeconds(this, json.optInt("crossfade", 0))
+            AudioSettings.setReplayGainPreamp(this, json.optDouble("replayGain", 0.0).toFloat())
+            AudioSettings.setReplayGainEnabled(this, json.optBoolean("replayGainEnabled", false))
+            AudioSettings.setEnabled(this, json.optBoolean("equalizerEnabled", true))
+            AudioSettings.setEqualizerPreset(this, json.optInt("equalizerPreset", -1))
+            AudioSettings.setBassBoost(this, json.optInt("bass", 0))
+            AudioSettings.setVirtualizer(this, json.optInt("virtualizer", 0))
+            AudioSettings.setOutputProfile(this, json.optString("outputProfile", "speaker"))
+            true
+        }.getOrDefault(false)
+
+        Toast.makeText(
+            this,
+            if (restored) R.string.backup_restored else R.string.backup_invalid,
+            Toast.LENGTH_SHORT
+        ).show()
+
+        if (restored) recreate()
+    }
+
     private fun applyPlaybackParameters() {
         mediaController?.playbackParameters = PlaybackParameters(
             AudioSettings.getPlaybackSpeed(this),
@@ -306,7 +399,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun notifyService() {
-        sendBroadcast(Intent(PlaybackService.ACTION_AUDIO_SETTINGS_CHANGED))
+        sendBroadcast(android.content.Intent(PlaybackService.ACTION_AUDIO_SETTINGS_CHANGED))
     }
 
     private fun simpleListener(onChanged: (Int) -> Unit): SeekBar.OnSeekBarChangeListener {

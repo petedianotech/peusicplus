@@ -1,14 +1,12 @@
 package com.peusicplus.player
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
 import android.media.audiofx.Visualizer
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
 
-/** Lightweight waveform visualizer attached to the active playback audio session. */
 class VisualizerView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
@@ -24,11 +22,12 @@ class VisualizerView @JvmOverloads constructor(
     private var waveform: ByteArray = ByteArray(0)
 
     fun start(audioSessionId: Int) {
+        if (audioSessionId == 0) return
         if (!ThemeManager.isVisualizerEnabled(context)) return
+        stop()
 
         runCatching {
             visualizer = Visualizer(audioSessionId).apply {
-                enabled = false
                 captureSize = Visualizer.getCaptureSizeRange()[1]
                 setDataCaptureListener(
                     object : Visualizer.OnDataCaptureListener {

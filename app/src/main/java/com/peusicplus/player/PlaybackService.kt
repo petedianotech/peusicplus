@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -15,6 +14,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
@@ -89,6 +89,18 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
+    private val audioSessionListener = object : AnalyticsListener {
+        override fun onAudioSessionIdChanged(
+            eventTime: AnalyticsListener.EventTime,
+            audioSessionId: Int
+        ) {
+            currentAudioSessionId = audioSessionId
+            if (audioSessionId != 0) {
+                AudioEffectsManager.apply(applicationContext, audioSessionId)
+            }
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
 
@@ -106,39 +118,23 @@ class PlaybackService : MediaSessionService() {
         player.setHandleAudioBecomingNoisy(true)
         player.repeatMode = ExoPlayer.REPEAT_MODE_ALL
         player.setPauseAtEndOfMediaItems(false)
+        player.addAnalyticsListener(audioSessionListener)
 
         mediaSession = MediaSession.Builder(this, player)
             .setCallback(sessionCallback)
             .build()
 
-        applyAudioSettings()
+        registerSettingsReceiver()
+        handler.post(crossfadeRunnable)
+    }
 
+    private fun registerSettingsReceiver() {
         ContextCompat.registerReceiver(
             this,
             settingsReceiver,
             IntentFilter(ACTION_AUDIO_SETTINGS_CHANGED),
             ContextCompat.RECEIVER_NOT_EXPORTED
         )
-
-        handler.post(crossfadeRunnable)
-    }
-
-    private fun applyAudioSettings() {
-        val player = mediaSession?.player ?: return
-
-        currentAudioSessionId = player.audioSessionId
-        AudioEffectsManager.apply(this, player.audioSessionId)
-
-        player.playbackParameters = PlaybackParameters(
-            AudioSettings.getPlaybackSpeed(this),
-            AudioSettings.getPitch(this)
-        )
-
-        val preamp = if (AudioSettings.isReplayGainEnabled(this)) {
-            AudioSettings.getReplayGainPreamp(this)
-        } else 0f
-
-        player.volume = Math.pow(10.0, (preamp / 20.0)).toFloat().coerceIn(0f, 1f)
     }
 
     private fun startSleepTimer(minutes: Int) {
