@@ -7,6 +7,7 @@
     <string name="previous">Previous track</string>
     <string name="next">Next track</string>
     <string name="peusicplus">PeusicPlus</string>
+    <string name="unknown_artist">Unknown artist</string>
     <string name="no_music_found">No music found on this device</string>
     <string name="audio_permission_required">PeusicPlus needs audio permission to play music stored on this device.</string>
 </resources>
