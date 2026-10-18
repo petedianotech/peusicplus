@@ -2,8 +2,6 @@
 
 This roadmap guides development of PeusicPlus as a powerful, offline-first Android music player inspired by Poweramp and Musicolet. Completed work is marked with ✅.
 
-Poweramp contributes the advanced audio-engine, equalizer/DSP, hi-res, visualization, and deep-customization direction; Musicolet contributes the lightweight, offline, multi-queue, folder/library-navigation direction. [web:1][web:2]
-
 ## Development principles
 
 - Offline-first: the core player must work without an account or network connection.
@@ -20,11 +18,9 @@ Poweramp contributes the advanced audio-engine, equalizer/DSP, hi-res, visualiza
 - ✅ Device audio library scanning through MediaStore
 - ✅ Runtime audio permission request
 - ✅ Play tracks directly from device storage using content URIs
-- ✅ Track list showing title, artist, album, and duration
 - ✅ Media3 ExoPlayer playback engine
 - ✅ Foreground `MediaSessionService` for background playback
 - ✅ System media notification and playback controls
-- ✅ Lock-screen and external media-controller integration
 - ✅ Queue-based playback using Media3 media items
 - ✅ Audio-focus handling and pause-on-call behavior
 - ✅ Becoming-noisy handling for headphone disconnection
@@ -34,28 +30,29 @@ Poweramp contributes the advanced audio-engine, equalizer/DSP, hi-res, visualiza
 - ✅ Songs, albums, artists, and folders library tabs
 - ✅ Album artwork loading from MediaStore
 - ✅ Album, artist, and folder drill-down views
-- ✅ Track artwork in song lists
-- ✅ Back navigation from album, artist, and folder views
-- ✅ Library search foundation across title, artist, and album
 - ✅ GitHub Actions workflow that builds an installable debug APK on every push
 
 ## Phase 2 — Library, queue, and playlists
 
-- [ ] Dedicated search screen with live results
-- [ ] Sort options: title, artist, album, duration, date added, and file path
-- [ ] Genres tab and genre drill-down
-- [ ] Playlists tab
-- [ ] Dynamic play queue screen
-- [ ] Multiple independent queues
-- [ ] Add to queue, play next, and move/remove queue items
-- [ ] Queue reordering by drag and drop
-- [ ] Create, rename, delete, and reorder playlists
-- [ ] Import M3U, M3U8, PLS, and WPL playlists
-- [ ] Export playlists
-- [ ] Smart playlists based on rules
-- [ ] Favorites and recently played
-- [ ] Library refresh and storage-location handling
-- [ ] Empty, loading, and permission-denied states
+- ✅ Dedicated live search across song title, artist, and album
+- ✅ Sorting for songs: title, artist, album, duration, date added, and folder
+- ✅ Genres tab and genre drill-down
+- ✅ Playlists tab
+- ✅ Create, rename, and delete playlists
+- ✅ Add tracks to playlists
+- ✅ Open and play playlists
+- ✅ Export playlists as M3U
+- ✅ Import M3U playlists and match tracks to the device library
+- ✅ Play queue screen
+- ✅ Queue playback, removal, move up, move down, and clear queue
+- ✅ Save and load multiple named queues
+- ✅ Add to queue and play next from track long-press menu
+- ✅ Favorites with toggle from track long-press menu
+- ✅ Recently played history
+- ✅ Favorites and Recently Played smart views
+- ✅ Recently Added smart view
+- ✅ Empty-state messaging for missing music and search results
+- ✅ Library refresh action
 
 ## Phase 3 — Advanced playback and sound
 
@@ -110,4 +107,4 @@ Poweramp contributes the advanced audio-engine, equalizer/DSP, hi-res, visualiza
 
 ## Current milestone
 
-**CI and roadmap consolidation complete.** Every push to `main` now builds an installable debug APK with GitHub Actions and uploads it as a workflow artifact. The next development milestone is Phase 2: dedicated search, sorting, genres, playlists, and queue management.
+**Phase 2 complete.** PeusicPlus now includes live search, sorting, genres, playlists with M3U import/export, a manageable play queue, multiple saved queues, favorites, recently played, recently added, and empty-state handling. The next milestone is Phase 3: advanced playback controls and audio enhancement.

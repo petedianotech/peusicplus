@@ -27,6 +27,15 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".QueueActivity"
+            android:exported="false"
+            android:label="@string/play_queue" />
+
+        <activity
+            android:name=".PlaylistActivity"
+            android:exported="false" />
+
         <service
             android:name=".PlaybackService"
             android:exported="true"
