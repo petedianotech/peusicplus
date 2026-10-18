@@ -6,15 +6,16 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 class TrackAdapter(
-    private val tracks: List<Track>,
     private val onTrackClick: (Int) -> Unit
 ) : RecyclerView.Adapter<TrackAdapter.TrackViewHolder>() {
 
-    private var selectedPosition = 0
+    private var tracks: List<Track> = emptyList()
+    private var selectedPosition = -1
 
     class TrackViewHolder(view: android.view.View) : RecyclerView.ViewHolder(view) {
         val title: TextView = view.findViewById(R.id.trackTitle)
         val artist: TextView = view.findViewById(R.id.trackArtist)
+        val duration: TextView = view.findViewById(R.id.trackDuration)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TrackViewHolder {
@@ -26,17 +27,29 @@ class TrackAdapter(
     override fun onBindViewHolder(holder: TrackViewHolder, position: Int) {
         val track = tracks[position]
         holder.title.text = track.title
-        holder.artist.text = track.artist
+        holder.artist.text = "${track.artist} • ${track.album}"
+        holder.duration.text = formatDuration(track.durationMs)
         holder.itemView.isSelected = position == selectedPosition
         holder.itemView.setOnClickListener { onTrackClick(position) }
     }
 
     override fun getItemCount(): Int = tracks.size
 
+    fun submitTracks(newTracks: List<Track>) {
+        tracks = newTracks
+        selectedPosition = if (tracks.isEmpty()) -1 else 0
+        notifyDataSetChanged()
+    }
+
     fun setSelectedPosition(position: Int) {
         val previous = selectedPosition
         selectedPosition = position
-        notifyItemChanged(previous)
+        if (previous != -1) notifyItemChanged(previous)
         notifyItemChanged(position)
+    }
+
+    private fun formatDuration(milliseconds: Long): String {
+        val totalSeconds = milliseconds / 1000
+        return "%d:%02d".format(totalSeconds / 60, totalSeconds % 60)
     }
 }

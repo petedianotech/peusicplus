@@ -2,8 +2,11 @@
 <resources>
     <string name="app_name">PeusicPlus</string>
     <string name="select_track">Select a track</string>
-    <string name="playlist">Playlist</string>
+    <string name="playlist">Library</string>
     <string name="play_pause">Play or pause</string>
     <string name="previous">Previous track</string>
     <string name="next">Next track</string>
+    <string name="peusicplus">PeusicPlus</string>
+    <string name="no_music_found">No music found on this device</string>
+    <string name="audio_permission_required">PeusicPlus needs audio permission to play music stored on this device.</string>
 </resources>

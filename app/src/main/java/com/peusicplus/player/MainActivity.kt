@@ -1,10 +1,16 @@
 package com.peusicplus.player
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.widget.ImageButton
 import android.widget.SeekBar
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.media.MediaPlayer
@@ -24,8 +30,19 @@ class MainActivity : AppCompatActivity() {
     private lateinit var seekBar: SeekBar
     private lateinit var playButton: ImageButton
 
+    private var tracks: List<Track> = emptyList()
     private var currentIndex = 0
     private var isPrepared = false
+
+    private val audioPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            loadDeviceLibrary()
+        } else {
+            Toast.makeText(this, R.string.audio_permission_required, Toast.LENGTH_LONG).show()
+        }
+    }
 
     private val updateRunnable = object : Runnable {
         override fun run() {
@@ -50,7 +67,7 @@ class MainActivity : AppCompatActivity() {
 
         mediaPlayer = MediaPlayer()
 
-        trackAdapter = TrackAdapter(TrackRepository.tracks) { position ->
+        trackAdapter = TrackAdapter { position ->
             playTrack(position)
         }
 
@@ -72,11 +89,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<ImageButton>(R.id.previousButton).setOnClickListener {
-            playTrack((currentIndex - 1 + TrackRepository.tracks.size) % TrackRepository.tracks.size)
+            if (tracks.isNotEmpty()) {
+                playTrack((currentIndex - 1 + tracks.size) % tracks.size)
+            }
         }
 
         findViewById<ImageButton>(R.id.nextButton).setOnClickListener {
-            playTrack((currentIndex + 1) % TrackRepository.tracks.size)
+            if (tracks.isNotEmpty()) {
+                playTrack((currentIndex + 1) % tracks.size)
+            }
         }
 
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -92,24 +113,56 @@ class MainActivity : AppCompatActivity() {
         })
 
         mediaPlayer.setOnCompletionListener {
-            playTrack((currentIndex + 1) % TrackRepository.tracks.size)
+            if (tracks.isNotEmpty()) {
+                playTrack((currentIndex + 1) % tracks.size)
+            }
         }
 
-        playTrack(0)
+        ensureAudioPermission()
         handler.post(updateRunnable)
     }
 
+    private fun ensureAudioPermission() {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_AUDIO
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+
+        if (ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
+            loadDeviceLibrary()
+        } else {
+            audioPermissionLauncher.launch(permission)
+        }
+    }
+
+    private fun loadDeviceLibrary() {
+        tracks = MusicLibraryRepository.loadTracks(this)
+        trackAdapter.submitTracks(tracks)
+
+        if (tracks.isEmpty()) {
+            titleText.text = getString(R.string.no_music_found)
+            artistText.text = getString(R.string.peusicplus)
+        } else {
+            playTrack(0)
+        }
+    }
+
     private fun playTrack(position: Int) {
-        currentIndex = position
-        val track = TrackRepository.tracks[position]
+        if (tracks.isEmpty()) return
 
-        mediaPlayer.reset()
-        val resourceId = resources.getIdentifier(track.resourceName, "raw", packageName)
-        mediaPlayer = MediaPlayer.create(this, resourceId) ?: return
+        currentIndex = position.coerceIn(0, tracks.lastIndex)
+        val track = tracks[currentIndex]
 
+        if (isPrepared) {
+            mediaPlayer.release()
+        }
+
+        mediaPlayer = MediaPlayer.create(this, track.uri) ?: return
         isPrepared = true
+
         titleText.text = track.title
-        artistText.text = track.artist
+        artistText.text = "${track.artist} • ${track.album}"
         durationText.text = formatTime(mediaPlayer.duration)
         seekBar.max = mediaPlayer.duration
         seekBar.progress = 0
