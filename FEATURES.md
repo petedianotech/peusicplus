@@ -47,14 +47,18 @@ Poweramp contributes the advanced audio-engine, equalizer/DSP, hi-res, visualiza
 
 ## Phase 3 — Library and navigation
 
-- [ ] Songs, albums, artists, genres, folders, and playlists tabs
-- [ ] Album art loading from MediaStore
-- [ ] Artist and album detail screens
-- [ ] Hierarchical and linear folder browsing
-- [ ] Search across songs, albums, artists, and folders
+- ✅ Songs, albums, artists, and folders library tabs
+- ✅ Album artwork loading from MediaStore
+- ✅ Album, artist, and folder drill-down views
+- ✅ Track artwork in song lists
+- ✅ Back navigation from album, artist, and folder views
+- ✅ Library search across title, artist, and album
+- ✅ Album, artist, and folder grouping
+- [ ] Dedicated search screen
 - [ ] Sort options: title, artist, album, duration, date added, and file path
 - [ ] Library refresh and storage-location handling
 - [ ] Empty, loading, and permission-denied states
+- [ ] Genres and playlists tabs
 
 ## Phase 4 — Queue and playlists
 
@@ -119,4 +123,4 @@ Poweramp contributes the advanced audio-engine, equalizer/DSP, hi-res, visualiza
 
 ## Current milestone
 
-**Playback reliability complete.** PeusicPlus now handles audio focus, pauses when headphones disconnect, restores the last queue and position, and supports shuffle plus off/all/one repeat modes. The next milestone is library navigation: songs, albums, artists, folders, search, sorting, and album artwork.
+**Library navigation complete.** PeusicPlus now provides Songs, Albums, Artists, and Folders views, album artwork, drill-down navigation, and the foundation for search and sorting. The next milestone adds a dedicated search screen, sorting controls, genres, playlists, and a full Now Playing screen.

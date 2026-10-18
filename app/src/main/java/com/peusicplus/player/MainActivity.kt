@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.View
 import android.widget.ImageButton
 import android.widget.SeekBar
 import android.widget.TextView
@@ -20,11 +21,17 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.chip.ChipGroup
 
 
 class MainActivity : AppCompatActivity() {
 
+    private enum class LibraryMode { SONGS, ALBUMS, ARTISTS, FOLDERS }
+
     private lateinit var trackAdapter: TrackAdapter
+    private lateinit var libraryAdapter: LibraryAdapter
+    private lateinit var trackList: RecyclerView
+
     private lateinit var titleText: TextView
     private lateinit var artistText: TextView
     private lateinit var currentTimeText: TextView
@@ -33,18 +40,19 @@ class MainActivity : AppCompatActivity() {
     private lateinit var playButton: ImageButton
     private lateinit var shuffleButton: ImageButton
     private lateinit var repeatButton: ImageButton
+    private lateinit var backButton: ImageButton
 
     private var mediaController: MediaController? = null
-    private var tracks: List<Track> = emptyList()
+    private var allTracks: List<Track> = emptyList()
+    private var visibleTracks: List<Track> = emptyList()
+    private var currentMode = LibraryMode.SONGS
     private var queueLoaded = false
     private val handler = Handler(Looper.getMainLooper())
 
     private val audioPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) {
-            loadDeviceLibrary()
-        } else {
+        if (granted) loadDeviceLibrary() else {
             Toast.makeText(this, R.string.audio_permission_required, Toast.LENGTH_LONG).show()
         }
     }
@@ -61,9 +69,8 @@ class MainActivity : AppCompatActivity() {
                     currentTimeText.text = formatTime(controller.currentPosition)
 
                     val index = controller.currentMediaItemIndex
-                    val positionMs = controller.currentPosition
-                    if (tracks.isNotEmpty() && index in tracks.indices) {
-                        QueuePersistence.save(this@MainActivity, tracks, index, positionMs)
+                    if (visibleTracks.isNotEmpty() && index in visibleTracks.indices) {
+                        QueuePersistence.save(this@MainActivity, visibleTracks, index, controller.currentPosition)
                     }
                 }
             }
@@ -83,9 +90,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
-            if (playbackState == Player.STATE_READY) {
-                updateNowPlaying()
-            }
+            if (playbackState == Player.STATE_READY) updateNowPlaying()
         }
 
         override fun onShuffleModeEnabledChanged(enabled: Boolean) {
@@ -109,19 +114,19 @@ class MainActivity : AppCompatActivity() {
         playButton = findViewById(R.id.playButton)
         shuffleButton = findViewById(R.id.shuffleButton)
         repeatButton = findViewById(R.id.repeatButton)
+        backButton = findViewById(R.id.backButton)
+        trackList = findViewById(R.id.trackList)
 
-        trackAdapter = TrackAdapter { position ->
-            playFromLibrary(position)
-        }
+        trackAdapter = TrackAdapter { position -> playFromLibrary(position) }
+        libraryAdapter = LibraryAdapter { entry -> openLibraryEntry(entry) }
 
-        findViewById<RecyclerView>(R.id.trackList).apply {
-            layoutManager = LinearLayoutManager(this@MainActivity)
-            adapter = trackAdapter
-        }
+        trackList.layoutManager = LinearLayoutManager(this)
+        trackList.adapter = trackAdapter
 
         playButton.setOnClickListener {
-            val controller = mediaController ?: return@setOnClickListener
-            if (controller.isPlaying) controller.pause() else controller.play()
+            mediaController?.let { controller ->
+                if (controller.isPlaying) controller.pause() else controller.play()
+            }
         }
 
         findViewById<ImageButton>(R.id.previousButton).setOnClickListener {
@@ -133,9 +138,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         shuffleButton.setOnClickListener {
-            mediaController?.let { controller ->
-                controller.shuffleModeEnabled = !controller.shuffleModeEnabled
-            }
+            mediaController?.let { it.shuffleModeEnabled = !it.shuffleModeEnabled }
         }
 
         repeatButton.setOnClickListener {
@@ -148,6 +151,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        backButton.setOnClickListener { showSongs() }
+
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
@@ -159,6 +164,15 @@ class MainActivity : AppCompatActivity() {
             override fun onStartTrackingTouch(bar: SeekBar?) = Unit
             override fun onStopTrackingTouch(bar: SeekBar?) = Unit
         })
+
+        findViewById<ChipGroup>(R.id.libraryTabs).setOnCheckedStateChangeListener { _, checkedIds ->
+            when (checkedIds.firstOrNull()) {
+                R.id.albumsChip -> showAlbums()
+                R.id.artistsChip -> showArtists()
+                R.id.foldersChip -> showFolders()
+                else -> showSongs()
+            }
+        }
 
         ensurePermissions()
         connectToPlaybackService()
@@ -208,13 +222,55 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadDeviceLibrary() {
-        tracks = MusicLibraryRepository.loadTracks(this)
-        trackAdapter.submitTracks(tracks)
+        allTracks = MusicLibraryRepository.loadTracks(this)
+        showSongs()
 
-        if (tracks.isEmpty()) {
+        if (allTracks.isEmpty()) {
             titleText.text = getString(R.string.no_music_found)
             artistText.text = getString(R.string.peusicplus)
         }
+    }
+
+    private fun showSongs() {
+        currentMode = LibraryMode.SONGS
+        visibleTracks = allTracks
+        trackList.adapter = trackAdapter
+        trackAdapter.submitTracks(visibleTracks)
+        backButton.visibility = View.GONE
+    }
+
+    private fun showAlbums() {
+        currentMode = LibraryMode.ALBUMS
+        trackList.adapter = libraryAdapter
+        libraryAdapter.submitEntries(MusicLibraryRepository.loadAlbums(allTracks))
+        backButton.visibility = View.GONE
+    }
+
+    private fun showArtists() {
+        currentMode = LibraryMode.ARTISTS
+        trackList.adapter = libraryAdapter
+        libraryAdapter.submitEntries(MusicLibraryRepository.loadArtists(allTracks))
+        backButton.visibility = View.GONE
+    }
+
+    private fun showFolders() {
+        currentMode = LibraryMode.FOLDERS
+        trackList.adapter = libraryAdapter
+        libraryAdapter.submitEntries(MusicLibraryRepository.loadFolders(allTracks))
+        backButton.visibility = View.GONE
+    }
+
+    private fun openLibraryEntry(entry: LibraryEntry) {
+        visibleTracks = when (currentMode) {
+            LibraryMode.ALBUMS -> MusicLibraryRepository.tracksForAlbum(allTracks, entry.id)
+            LibraryMode.ARTISTS -> MusicLibraryRepository.tracksForArtist(allTracks, entry.title)
+            LibraryMode.FOLDERS -> MusicLibraryRepository.tracksForFolder(allTracks, entry.path)
+            else -> allTracks
+        }
+
+        trackList.adapter = trackAdapter
+        trackAdapter.submitTracks(visibleTracks)
+        backButton.visibility = View.VISIBLE
     }
 
     private fun restoreSavedQueue(controller: MediaController) {
@@ -224,12 +280,12 @@ class MainActivity : AppCompatActivity() {
         if (saved.tracks.isEmpty()) return
 
         queueLoaded = true
-        tracks = saved.tracks
+        allTracks = saved.tracks
+        visibleTracks = saved.tracks
         trackAdapter.submitTracks(tracks)
 
-        val mediaItems = tracks.map(PlaybackService::createMediaItem)
         controller.setMediaItems(
-            mediaItems,
+            tracks.map(PlaybackService::createMediaItem),
             saved.index.coerceIn(0, tracks.lastIndex),
             saved.positionMs
         )
@@ -238,11 +294,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun playFromLibrary(position: Int) {
         val controller = mediaController ?: return
-        if (tracks.isEmpty()) return
+        if (visibleTracks.isEmpty()) return
 
         queueLoaded = true
-        val mediaItems = tracks.map(PlaybackService::createMediaItem)
-        controller.setMediaItems(mediaItems, position, 0L)
+        controller.setMediaItems(
+            visibleTracks.map(PlaybackService::createMediaItem),
+            position,
+            0L
+        )
         controller.prepare()
         controller.play()
         trackAdapter.setSelectedPosition(position)
@@ -273,10 +332,8 @@ class MainActivity : AppCompatActivity() {
         shuffleButton.alpha = if (controller.shuffleModeEnabled) 1f else 0.55f
         repeatButton.alpha = if (controller.repeatMode == Player.REPEAT_MODE_OFF) 0.55f else 1f
 
-        val position = tracks.indexOfFirst { it.id.toString() == current.mediaId }
-        if (position >= 0) {
-            trackAdapter.setSelectedPosition(position)
-        }
+        val position = visibleTracks.indexOfFirst { it.id.toString() == current.mediaId }
+        if (position >= 0) trackAdapter.setSelectedPosition(position)
     }
 
     private fun formatTime(milliseconds: Long): String {

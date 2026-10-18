@@ -2,8 +2,10 @@ package com.peusicplus.player
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import coil.load
 
 class TrackAdapter(
     private val onTrackClick: (Int) -> Unit
@@ -13,6 +15,7 @@ class TrackAdapter(
     private var selectedPosition = -1
 
     class TrackViewHolder(view: android.view.View) : RecyclerView.ViewHolder(view) {
+        val artwork: ImageView = view.findViewById(R.id.itemArtwork)
         val title: TextView = view.findViewById(R.id.trackTitle)
         val artist: TextView = view.findViewById(R.id.trackArtist)
         val duration: TextView = view.findViewById(R.id.trackDuration)
@@ -29,6 +32,10 @@ class TrackAdapter(
         holder.title.text = track.title
         holder.artist.text = "${track.artist} • ${track.album}"
         holder.duration.text = formatDuration(track.durationMs)
+        holder.artwork.load(track.albumArtUri) {
+            crossfade(true)
+            error(R.drawable.ic_music_note)
+        }
         holder.itemView.isSelected = position == selectedPosition
         holder.itemView.setOnClickListener { onTrackClick(position) }
     }

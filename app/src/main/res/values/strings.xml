@@ -8,6 +8,11 @@
     <string name="next">Next track</string>
     <string name="shuffle">Shuffle</string>
     <string name="repeat">Repeat</string>
+    <string name="back">Back</string>
+    <string name="songs">Songs</string>
+    <string name="albums">Albums</string>
+    <string name="artists">Artists</string>
+    <string name="folders">Folders</string>
     <string name="peusicplus">PeusicPlus</string>
     <string name="unknown_artist">Unknown artist</string>
     <string name="no_music_found">No music found on this device</string>
