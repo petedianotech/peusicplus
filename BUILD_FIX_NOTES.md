@@ -1,4 +1,13 @@
 # Build Fix Notes
 
-- `PresetReverb` now uses `setPreset(...)` directly instead of a Kotlin synthetic property assignment.
-- Guava is pinned to `33.2.1-android`, a verified release, while the conflicting standalone `listenablefuture` artifact remains excluded.
+## Fix: AndroidX not enabled
+
+The `:app:checkDebugAarMetadata` failure occurred because the project used AndroidX dependencies without enabling AndroidX in Gradle.
+
+Added a root `gradle.properties` file with:
+
+```properties
+android.useAndroidX=true
+```
+
+This is the required setting for all `androidx.*` dependencies, including Media3, AppCompat, Material, and Lifecycle. The file also includes standard Gradle memory/encoding settings and does not conflict with any existing properties because no root `gradle.properties` existed previously.
