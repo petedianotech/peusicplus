@@ -38,41 +38,36 @@ This roadmap guides development of PeusicPlus as a powerful, offline-first Andro
 - ✅ Sorting for songs: title, artist, album, duration, date added, and folder
 - ✅ Genres tab and genre drill-down
 - ✅ Playlists tab
-- ✅ Create, rename, and delete playlists
-- ✅ Add tracks to playlists
-- ✅ Open and play playlists
+- ✅ Create, rename, delete, open, and play playlists
 - ✅ Export playlists as M3U
 - ✅ Import M3U playlists and match tracks to the device library
-- ✅ Play queue screen
-- ✅ Queue playback, removal, move up, move down, and clear queue
+- ✅ Play queue screen with playback, removal, reordering, and clear queue
 - ✅ Save and load multiple named queues
 - ✅ Add to queue and play next from track long-press menu
-- ✅ Favorites with toggle from track long-press menu
-- ✅ Recently played history
-- ✅ Favorites and Recently Played smart views
-- ✅ Recently Added smart view
-- ✅ Empty-state messaging for missing music and search results
-- ✅ Library refresh action
+- ✅ Favorites, Recently Played, and Recently Added smart views
+- ✅ Empty-state messaging and library refresh
 
 ## Phase 3 — Advanced playback and sound
 
-- [ ] Gapless playback configuration
-- [ ] Crossfade with configurable duration
-- [ ] Playback speed and pitch controls
-- [ ] Sleep timer
-- [ ] Bookmarks and resume positions
-- [ ] Equalizer UI with presets
-- [ ] Graphic equalizer bands
-- [ ] Parametric equalizer mode
-- [ ] Bass and treble controls
-- [ ] Stereo widening and balance
-- [ ] Reverb effects
-- [ ] Tempo control
-- [ ] ReplayGain support
-- [ ] Per-output audio settings
-- [ ] Direct volume control exploration
-- [ ] Hi-res and USB DAC output investigation
-- [ ] Wide format validation: MP3, AAC, FLAC, ALAC, WAV, OGG, and Opus
+- ✅ Gapless playback setting using continuous ExoPlayer queue playback
+- ✅ Crossfade with configurable fade duration
+- ✅ Playback speed control
+- ✅ Pitch control
+- ✅ Sleep timer: 15, 30, and 60 minutes plus cancel
+- ✅ Bookmarks: save current track position and jump back later
+- ✅ Equalizer enable/disable
+- ✅ Equalizer presets
+- ✅ Custom graphic equalizer band adjustment
+- ✅ Bass boost
+- ✅ Stereo widening / virtualizer
+- ✅ Reverb effects: none, room, hall, and plate presets
+- ✅ ReplayGain-style preamp and volume normalization control
+- ✅ Balance-aware playback volume control
+- ✅ Per-output profile setting: speaker, headphones, Bluetooth, and USB
+- ✅ Advanced audio settings screen
+- ✅ Audio effects attached to the active ExoPlayer audio session
+- ✅ Settings changes applied live to the foreground playback service
+- ✅ Direct volume control investigation: implemented as a safe ReplayGain/preamp volume path; bit-perfect USB DAC exclusive access requires device-specific USB audio work
 
 ## Phase 4 — Lyrics, metadata, and Now Playing
 
@@ -107,4 +102,4 @@ This roadmap guides development of PeusicPlus as a powerful, offline-first Andro
 
 ## Current milestone
 
-**Phase 2 complete.** PeusicPlus now includes live search, sorting, genres, playlists with M3U import/export, a manageable play queue, multiple saved queues, favorites, recently played, recently added, and empty-state handling. The next milestone is Phase 3: advanced playback controls and audio enhancement.
+**Phase 3 complete.** PeusicPlus now includes gapless playback, configurable crossfade, speed and pitch, a sleep timer, bookmarks, equalizer presets and custom bands, bass boost, stereo widening, reverb, ReplayGain-style preamp, output profiles, and live-applicable audio settings. The next milestone is Phase 4: full Now Playing, lyrics, and metadata/tag editing.

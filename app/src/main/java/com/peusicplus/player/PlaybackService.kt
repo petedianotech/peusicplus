@@ -1,20 +1,63 @@
 package com.peusicplus.player
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import android.os.Handler
+import android.os.Looper
 
-/**
- * Foreground playback service that owns the ExoPlayer instance and exposes it
- * to the UI, system media controls, Bluetooth devices, and Android Auto.
- */
 class PlaybackService : MediaSessionService() {
 
     private var mediaSession: MediaSession? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private var sleepTimerEnd: Long = 0
+
+    private val settingsReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            applyAudioSettings()
+        }
+    }
+
+    private val crossfadeRunnable = object : Runnable {
+        override fun run() {
+            val player = mediaSession?.player ?: return
+            val crossfadeMs = AudioSettings.getCrossfadeSeconds(this@PlaybackService) * 1000L
+
+            if (crossfadeMs > 0 && player.isPlaying) {
+                val remaining = player.duration - player.currentPosition
+                if (remaining in 1 until crossfadeMs) {
+                    val fraction = remaining.toFloat() / crossfadeMs
+                    player.volume = fraction.coerceIn(0f, 1f)
+                } else if (remaining > crossfadeMs) {
+                    player.volume = 1f
+                }
+            }
+
+            handler.postDelayed(this, 250)
+        }
+    }
+
+    private val sleepTimerRunnable = object : Runnable {
+        override fun run() {
+            val player = mediaSession?.player ?: return
+            if (sleepTimerEnd > 0 && System.currentTimeMillis() >= sleepTimerEnd) {
+                player.pause()
+                sleepTimerEnd = 0
+            }
+            if (sleepTimerEnd > 0) {
+                handler.postDelayed(this, 1000)
+            }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -29,12 +72,49 @@ class PlaybackService : MediaSessionService() {
             .setSeekForwardIncrementMs(10_000)
             .build()
 
-        player.setAudioAttributes(audioAttributes, /* handleAudioFocus = */ true)
+        player.setAudioAttributes(audioAttributes, true)
         player.setHandleAudioBecomingNoisy(true)
         player.repeatMode = ExoPlayer.REPEAT_MODE_ALL
+        player.setPauseAtEndOfMediaItems(false)
 
-        mediaSession = MediaSession.Builder(this, player)
-            .build()
+        mediaSession = MediaSession.Builder(this, player).build()
+        applyAudioSettings()
+
+        registerReceiver(
+            settingsReceiver,
+            IntentFilter(ACTION_AUDIO_SETTINGS_CHANGED)
+        )
+
+        handler.post(crossfadeRunnable)
+    }
+
+    private fun applyAudioSettings() {
+        val player = mediaSession?.player ?: return
+
+        AudioEffectsManager.apply(this, player.audioSessionId)
+
+        player.playbackParameters = PlaybackParameters(
+            AudioSettings.getPlaybackSpeed(this),
+            AudioSettings.getPitch(this)
+        )
+
+        val preamp = if (AudioSettings.isReplayGainEnabled(this)) {
+            AudioSettings.getReplayGainPreamp(this)
+        } else 0f
+
+        player.volume = 10f.pow(preamp / 20f).coerceIn(0f, 1f)
+    }
+
+    private fun Float.pow(exponent: Float): Float =
+        Math.pow(this.toDouble(), exponent.toDouble()).toFloat()
+
+    fun startSleepTimer(minutes: Int) {
+        sleepTimerEnd = System.currentTimeMillis() + minutes * 60_000L
+        handler.post(sleepTimerRunnable)
+    }
+
+    fun cancelSleepTimer() {
+        sleepTimerEnd = 0
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
@@ -42,6 +122,10 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        handler.removeCallbacks(crossfadeRunnable)
+        handler.removeCallbacks(sleepTimerRunnable)
+        runCatching { unregisterReceiver(settingsReceiver) }
+        AudioEffectsManager.release()
         mediaSession?.run {
             player.release()
             release()
@@ -51,6 +135,8 @@ class PlaybackService : MediaSessionService() {
     }
 
     companion object {
+        const val ACTION_AUDIO_SETTINGS_CHANGED = "com.peusicplus.player.AUDIO_SETTINGS_CHANGED"
+
         fun createMediaItem(track: Track): MediaItem {
             val metadata = MediaMetadata.Builder()
                 .setTitle(track.title)

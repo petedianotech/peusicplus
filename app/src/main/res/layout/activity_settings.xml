@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background">
+
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:padding="20dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/playback"
+                android:textColor="@color/text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/speed" android:textColor="@color/text_secondary" />
+            <SeekBar android:id="@+id/speedBar" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="150" />
+            <TextView android:id="@+id/speedText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/text_primary" />
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/pitch" android:textColor="@color/text_secondary" />
+            <SeekBar android:id="@+id/pitchBar" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="150" />
+            <TextView android:id="@+id/pitchText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/text_primary" />
+
+            <Switch
+                android:id="@+id/gaplessSwitch"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/gapless_playback"
+                android:textColor="@color/text_primary" />
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/crossfade" android:textColor="@color/text_secondary" />
+            <SeekBar android:id="@+id/crossfadeBar" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="12" />
+            <TextView android:id="@+id/crossfadeText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/text_primary" />
+
+            <Switch
+                android:id="@+id/replayGainSwitch"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/replaygain"
+                android:textColor="@color/text_primary" />
+
+            <SeekBar android:id="@+id/replayGainBar" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="30" />
+            <TextView android:id="@+id/replayGainText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/text_primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/audio_effects"
+                android:textColor="@color/text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <Switch
+                android:id="@+id/equalizerSwitch"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/equalizer"
+                android:textColor="@color/text_primary" />
+
+            <Spinner android:id="@+id/equalizerPresets" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+            <LinearLayout
+                android:id="@+id/equalizerBands"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/bass_boost" android:textColor="@color/text_secondary" />
+            <SeekBar android:id="@+id/bassBar" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="1000" />
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/stereo_widening" android:textColor="@color/text_secondary" />
+            <SeekBar android:id="@+id/virtualizerBar" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="1000" />
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/reverb" android:textColor="@color/text_secondary" />
+            <Spinner android:id="@+id/reverbSpinner" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/sleep_timer"
+                android:textColor="@color/text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button android:id="@+id/sleep15Button" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/minutes_15" />
+                <Button android:id="@+id/sleep30Button" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/minutes_30" />
+                <Button android:id="@+id/sleep60Button" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/minutes_60" />
+                <Button android:id="@+id/sleepCancel" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/cancel" />
+
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/bookmarks"
+                android:textColor="@color/text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button android:id="@+id/addBookmarkButton" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/add_bookmark" />
+                <Button android:id="@+id/showBookmarksButton" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/view_bookmarks" />
+
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/output_profile"
+                android:textColor="@color/text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <Spinner android:id="@+id/outputProfileSpinner" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+            <Button
+                android:id="@+id/openQueueButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/play_queue" />
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

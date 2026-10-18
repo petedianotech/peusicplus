@@ -36,6 +36,11 @@
             android:name=".PlaylistActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:label="@string/settings" />
+
         <service
             android:name=".PlaybackService"
             android:exported="true"

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback">Playback</string>
+    <string name="speed">Speed</string>
+    <string name="pitch">Pitch</string>
+    <string name="gapless_playback">Gapless playback</string>
+    <string name="crossfade">Crossfade</string>
+    <string name="crossfade_seconds">%1$d seconds</string>
+    <string name="replaygain">ReplayGain preamp</string>
+    <string name="audio_effects">Audio effects</string>
+    <string name="equalizer">Equalizer</string>
+    <string name="custom">Custom</string>
+    <string name="bass_boost">Bass boost</string>
+    <string name="stereo_widening">Stereo widening</string>
+    <string name="reverb">Reverb</string>
+    <string name="sleep_timer">Sleep timer</string>
+    <string name="minutes_15">15 min</string>
+    <string name="minutes_30">30 min</string>
+    <string name="minutes_60">60 min</string>
+    <string name="cancel">Cancel</string>
+    <string name="sleep_timer_set">Sleep timer set for %1$d minutes</string>
+    <string name="sleep_timer_cancelled">Sleep timer cancelled</string>
+    <string name="bookmarks">Bookmarks</string>
+    <string name="add_bookmark">Add bookmark</string>
+    <string name="view_bookmarks">View bookmarks</string>
+    <string name="bookmark_saved">Bookmark saved</string>
+    <string name="no_bookmarks">No bookmarks saved</string>
+    <string name="output_profile">Output profile</string>
+    <string name="settings">Settings</string>
+</resources>
