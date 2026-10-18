@@ -27,6 +27,7 @@ object QueuePersistence {
                     .put("album", track.album)
                     .put("durationMs", track.durationMs)
                     .put("albumId", track.albumId)
+                    .put("folderPath", track.folderPath)
                     .put("uri", track.uri.toString())
             )
         }
@@ -49,11 +50,12 @@ object QueuePersistence {
                 val item = array.getJSONObject(i)
                 Track(
                     id = item.getLong("id"),
-                    title = item.getString("title"),
-                    artist = item.getString("artist"),
-                    album = item.getString("album"),
-                    durationMs = item.getLong("durationMs"),
-                    albumId = item.getLong("albumId"),
+                    title = item.optString("title", "Unknown title"),
+                    artist = item.optString("artist", "Unknown artist"),
+                    album = item.optString("album", "Unknown album"),
+                    durationMs = item.optLong("durationMs", 0L),
+                    albumId = item.optLong("albumId", -1L),
+                    folderPath = item.optString("folderPath", ""),
                     uri = Uri.parse(item.getString("uri"))
                 )
             }
